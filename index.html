@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nota — the study app that reads your lectures with you</title>
+  <meta name="description" content="Nota is a free desktop study app. Drop in your lecture slides and notes; ask questions and get answers that point to the exact page, skim objectives, quiz yourself, and plan your term. Your files stay on your computer." />
+  <meta property="og:title" content="Nota — study with your own lectures" />
+  <meta property="og:description" content="Answers that cite your slides, quizzes that remember what you missed, and a calendar built from your syllabus. Free for Windows." />
+  <meta property="og:image" content="nota-512.png" />
+  <meta name="theme-color" content="#d95d39" />
+  <link rel="icon" type="image/svg+xml" href="nota-mark.svg" />
+  <link rel="apple-touch-icon" href="nota-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --surface: #fffdfa;
+      --tint: #f0ebe1;
+      --ink: #1c1c1e;
+      --muted: #5b5852;
+      --line: #e3ddd1;
+      --clay: #d95d39;
+      --clay-deep: #b5461f;
+      --clay-soft: #fbe9e1;
+      --moss: #3f6b52;
+      --moss-soft: #e5f0e9;
+      --red: #b3372f;
+      --red-soft: #f9e4e1;
+      --shadow: 0 1px 2px rgba(40, 30, 20, .04), 0 12px 40px -12px rgba(40, 30, 20, .14);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #151412; --surface: #1e1d1a; --tint: #2c2a26; --ink: #ece8e1; --muted: #aca69c;
+        --line: #373530; --clay: #e57654; --clay-deep: #f29676; --clay-soft: #3b261f;
+        --moss: #8fba9e; --moss-soft: #1e2d25; --red: #ef8a80; --red-soft: #3a211e;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px -16px rgba(0,0,0,.6);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #151412; --surface: #1e1d1a; --tint: #2c2a26; --ink: #ece8e1; --muted: #aca69c;
+      --line: #373530; --clay: #e57654; --clay-deep: #f29676; --clay-soft: #3b261f;
+      --moss: #8fba9e; --moss-soft: #1e2d25; --red: #ef8a80; --red-soft: #3a211e;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px -16px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.6 Geist, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+    .serif { font-family: Newsreader, Georgia, serif; font-weight: 400; letter-spacing: -.01em; }
+    .mono { font-family: "Geist Mono", ui-monospace, monospace; }
+
+    /* ------------------------------------------------------------- nav */
+    nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid transparent; }
+    nav.scrolled { border-color: var(--line); }
+    nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 500 22px/1 Newsreader, Georgia, serif; }
+    .brand img { width: 30px; height: 30px; }
+    nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--muted); }
+    nav .links a { text-decoration: none; }
+    nav .links a:hover { color: var(--ink); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; text-decoration: none;
+      background: var(--clay); color: #fff; font: 500 15px/1 Geist, system-ui, sans-serif;
+      padding: 13px 20px; border-radius: 12px; transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--clay) 70%, transparent);
+    }
+    :root[data-theme="dark"] .btn:not(.ghost) { color: #1a1310; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn:not(.ghost) { color: #1a1310; } }
+    .btn:hover { transform: translateY(-1px); background: var(--clay-deep); }
+    .btn.small { padding: 9px 14px; font-size: 14px; border-radius: 10px; }
+    .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+    .btn.ghost:hover { background: var(--tint); }
+    .theme { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; display: grid; place-items: center; }
+    .theme:hover { color: var(--ink); background: var(--tint); }
+
+    /* ------------------------------------------------------------ hero */
+    .hero { padding: 72px 0 40px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+    .eyebrow { display: inline-block; font-size: 13px; line-height: 1.5; color: var(--muted); border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; border-radius: 999px; }
+    .eyebrow b { color: var(--moss); font-weight: 600; }
+    h1 { font: 400 clamp(44px, 6vw, 72px)/1.02 Newsreader, Georgia, serif; letter-spacing: -.025em; margin: 20px 0 18px; }
+    h1 em { color: var(--clay); font-style: italic; }
+    .lede { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 30px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .fine { font-size: 13px; color: var(--muted); margin-top: 14px; }
+
+    /* The app, drawn: a window with a real-looking answer in it. */
+    .window { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; transform: rotate(.6deg); }
+    .window .bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+    .window .bar img { width: 18px; height: 18px; }
+    .window .bar .dots { margin-left: auto; display: flex; gap: 6px; }
+    .window .bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: block; }
+    .chat { padding: 20px; display: grid; gap: 14px; font-size: 14.5px; }
+    .q { justify-self: end; background: var(--tint); padding: 9px 14px; border-radius: 14px 14px 4px 14px; max-width: 80%; }
+    .a { line-height: 1.65; }
+    .cite { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin: 0 2px; border-radius: 999px; background: var(--clay); color: #fff; font: 500 11px/1 "Geist Mono", monospace; vertical-align: 1px; }
+    :root[data-theme="dark"] .cite { color: #1a1310; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cite { color: #1a1310; } }
+    .source { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-left: 3px solid var(--clay); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--muted); background: var(--bg); }
+    .source b { color: var(--ink); font-weight: 500; }
+
+    /* --------------------------------------------------------- sections */
+    section { padding: 72px 0; }
+    .kicker { font: 500 12px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--clay-deep); }
+    h2 { font: 400 clamp(32px, 4vw, 46px)/1.08 Newsreader, Georgia, serif; letter-spacing: -.02em; margin: 12px 0 14px; }
+    .sub { color: var(--muted); font-size: 18px; max-width: 38em; margin: 0; }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+    .card h3 { font: 500 17px/1.3 Geist, sans-serif; margin: 14px 0 6px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+    .icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--clay-soft); color: var(--clay-deep); }
+    .icon svg { width: 19px; height: 19px; }
+
+    /* The quiz, drawn — and clickable. */
+    .split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; }
+    .quiz { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); }
+    .quiz .head { display: flex; justify-content: space-between; font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .quiz .question { font-size: 16px; font-weight: 500; margin: 12px 0 14px; }
+    .opt { width: 100%; display: flex; gap: 12px; align-items: flex-start; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 11px 13px; margin-top: 8px; font: 14.5px/1.45 Geist, sans-serif; cursor: pointer; transition: border-color .15s, background .15s; }
+    .opt:hover { border-color: var(--clay); }
+    .opt .l { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); font: 500 12px/1 "Geist Mono", monospace; }
+    .opt.right { border-color: var(--moss); background: var(--moss-soft); }
+    .opt.right .l { background: var(--moss); color: var(--surface); }
+    .opt.wrong { border-color: var(--red); background: var(--red-soft); }
+    .opt.wrong .l { background: var(--red); color: var(--surface); }
+    .opt.flash { animation: flash .7s ease 2; }
+    @keyframes flash { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 18%, transparent); } }
+    .opt.right.flash { color: var(--moss); } .opt.right.flash span:last-child { color: var(--ink); }
+    .opt.wrong.flash { color: var(--red); } .opt.wrong.flash span:last-child { color: var(--ink); }
+    .verdict { display: none; margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+    .verdict.show { display: block; }
+    .verdict.good { background: var(--moss-soft); }
+    .verdict.bad { background: var(--red-soft); }
+    .again { margin-top: 10px; font-size: 13px; background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; padding: 0; display: none; }
+
+    .bionic-demo { margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+    .bionic-demo .toggle { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--line); border: 0; position: relative; cursor: pointer; transition: background .2s; }
+    .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .switch[aria-checked="true"] { background: var(--clay); }
+    .switch[aria-checked="true"]::after { transform: translateX(18px); }
+    .bionic-text { font-size: 16.5px; line-height: 1.75; margin: 0; }
+    .bionic-text b { font-weight: 700; }
+
+    /* ------------------------------------------------------------ steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; counter-reset: step; }
+    .step { border-top: 2px solid var(--line); padding-top: 18px; }
+    .step::before { counter-increment: step; content: "0" counter(step); font: 500 13px/1 "Geist Mono", monospace; color: var(--clay-deep); }
+    .step h3 { font: 500 18px/1.3 Geist, sans-serif; margin: 10px 0 6px; }
+    .step p { color: var(--muted); margin: 0; font-size: 15px; }
+
+    .privacy { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .privacy ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+    .privacy li { display: flex; gap: 12px; font-size: 15px; }
+    .privacy li svg { flex: none; width: 20px; height: 20px; color: var(--moss); margin-top: 2px; }
+
+    .download { text-align: center; padding: 88px 0; }
+    .download img { width: 84px; height: 84px; }
+    .reqs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 22px; font-size: 13.5px; color: var(--muted); }
+
+    details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+    details summary { cursor: pointer; font-weight: 500; font-size: 16.5px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    details summary::after { content: "+"; color: var(--muted); font-size: 20px; line-height: 1; }
+    details[open] summary::after { content: "–"; }
+    details p { color: var(--muted); margin: 10px 0 0; max-width: 46em; }
+    .faq { max-width: 780px; margin-top: 28px; }
+
+    footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 13.5px; color: var(--muted); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+    footer .brand { font-size: 18px; color: var(--ink); }
+
+    @media (max-width: 900px) {
+      .hero, .split, .privacy { grid-template-columns: 1fr; gap: 36px; }
+      .hero { padding-top: 40px; }
+      .features, .steps { grid-template-columns: 1fr; }
+      nav .links { display: none; }
+      nav .wrap { gap: 12px; }
+      nav .theme { margin-left: auto; }
+      .window { transform: none; }
+      .privacy { padding: 26px; }
+      section { padding: 52px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="nota-mark.svg" alt="" />Nota</a>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#quiz">Quizzes</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <button class="theme" id="theme" aria-label="Switch light or dark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="btn small" href="#download" data-download>Download</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div>
+        <span class="eyebrow"><b>Free</b> · for Windows · your files stay on your computer</span>
+        <h1>Study your own lectures, <em>with a tutor that read them.</em></h1>
+        <p class="lede">Drop in your slides, notes and syllabus. Nota answers questions and points to the exact page it read, walks you through the learning objectives, and quizzes you on what you keep missing.</p>
+        <div class="cta">
+          <a class="btn" href="#download" data-download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download for Windows
+          </a>
+          <a class="btn ghost" href="#features">See what it does</a>
+        </div>
+        <p class="fine">Windows 10 or 11 · 64-bit · free AI key from Google or Groq, set up in a minute</p>
+      </div>
+
+      <div class="window" aria-label="Nota answering a question about a lecture">
+        <div class="bar"><img src="nota-mark.svg" alt="" /> Tutor · Pharmacology <span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="chat">
+          <div class="q">Why does an oral dose reach the blood at a lower level than an IV one?</div>
+          <div class="a">Because of the <b>first-pass effect</b>: a drug absorbed from the gut goes to the liver before it reaches the circulation, and the liver metabolises part of it <span class="cite">1</span>. What gets through is the <b>bioavailability</b>, 100% for IV and less for oral <span class="cite">2</span>.</div>
+          <div class="source"><span class="cite">1</span><div><b>Drug Absorption and Distribution · p. 14</b><br />“…passes through the hepatic portal system before reaching systemic circulation…”</div></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <span class="kicker">What it does</span>
+        <h2 class="serif">Everything a study session needs, grounded in your own material.</h2>
+        <p class="sub">Nota only answers from what you give it, and shows where each answer came from. If it isn't in your files, it tells you.</p>
+        <div class="features">
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10M7 12h6"/><path d="M21 12a9 9 0 1 1-4-7.5L21 3v6h-6"/></svg></div>
+            <h3>Answers with receipts</h3>
+            <p>Every claim cites the slide or page it came from. Click a number and the passage opens, highlighted.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+            <h3>Skim a lecture</h3>
+            <p><span class="mono">/skim</span> lists the learning objectives, asks for the key words you remember, then builds each concept up step by step.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+            <h3>Quizzes that remember</h3>
+            <p>Multiple choice or written answers. Missed questions come back later, and Nota tracks which units you should review.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <h3>A calendar from your syllabus</h3>
+            <p>Nota reads your syllabi for exams and deadlines, adds them to a calendar, and spots duplicates. Change dates by just saying so.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg></div>
+            <h3>Figures when a picture helps</h3>
+            <p>Concentration curves, comparisons and step diagrams, drawn right in the answer with <span class="mono">/diagram</span>.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></div>
+            <h3>Made for reading</h3>
+            <p>Bionic reading, dark mode, high contrast, and a font designed to be easy to read.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quiz">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Try it</span>
+          <h2 class="serif">Answer on the card. Nota remembers what you missed.</h2>
+          <p class="sub">Questions come from your lectures. Choose an option or write your answer out, and Nota tells you what you got right and what to refine. Missed questions come back a few questions later, until you get them.</p>
+
+          <div class="bionic-demo">
+            <div class="toggle"><span>Bionic reading</span><button class="switch" id="bionic" role="switch" aria-checked="false" aria-label="Bionic reading"></button></div>
+            <p class="bionic-text" id="bionic-text">The first letters of each word are set in bold, so your eye lands on the start of a word and reads the rest faster. The words themselves never change.</p>
+          </div>
+        </div>
+
+        <div class="quiz" id="demo-quiz">
+          <div class="head"><span>Question 3 · Drug absorption</span><span>Multiple choice</span></div>
+          <div class="question">What does the first-pass effect reduce?</div>
+          <button class="opt" data-right="false"><span class="l">A</span><span>Renal clearance</span></button>
+          <button class="opt" data-right="true"><span class="l">B</span><span>Oral bioavailability</span></button>
+          <button class="opt" data-right="false"><span class="l">C</span><span>Volume of distribution</span></button>
+          <button class="opt" data-right="false"><span class="l">D</span><span>Plasma protein binding</span></button>
+          <div class="verdict" id="verdict" role="status"></div>
+          <button class="again" id="again">Try again</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <span class="kicker">Get started</span>
+        <h2 class="serif">Up and running in three steps.</h2>
+        <div class="steps">
+          <div class="step"><h3>Download and install</h3><p>One installer for Windows. No account, no sign-up.</p></div>
+          <div class="step"><h3>Connect a free AI key</h3><p>Nota shows you where to get one from Google Gemini or Groq, both free, and checks it for you.</p></div>
+          <div class="step"><h3>Drop in your lectures</h3><p>PDFs, Word files, notes and links. Nota reads them on your computer, and you can start asking.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="wrap privacy">
+        <div>
+          <span class="kicker">Privacy</span>
+          <h2 class="serif">Your library lives on your computer.</h2>
+          <p class="sub">Nota doesn't have accounts or a cloud copy of your files. Reading, search and memory all run locally.</p>
+        </div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Your files are read and indexed on your computer. They are never uploaded.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>To answer a question, only the few passages it needs go to the AI provider you chose, with your own key.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Your key is stored only on your computer, and only Nota itself can change it.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>No analytics and no tracking in the app.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="wrap">
+        <img src="nota-mark.svg" alt="Nota" />
+        <h2 class="serif">Get Nota for Windows.</h2>
+        <p class="sub" style="margin-inline:auto">Free. About 500 MB. Your study data stays on your computer.</p>
+        <p style="margin-top:28px"><a class="btn" id="download-link" data-download href="#download">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download Nota <span id="version"></span>
+        </a></p>
+        <div class="reqs"><span>Windows 10 / 11, 64-bit</span><span>8 GB RAM recommended</span><span>2 GB free disk space</span><span>Internet for AI answers</span></div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <span class="kicker">Questions</span>
+        <h2 class="serif">Good to know.</h2>
+        <div class="faq">
+          <details><summary>Is Nota really free?</summary><p>Yes. Nota is free, and the AI providers it uses, Google Gemini and Groq, both have free tiers that cover normal studying. You make a key with your own account, so there's no bill from us.</p></details>
+          <details><summary>Windows says “Windows protected your PC”. Is it safe?</summary><p>Windows shows this for new apps that haven't built up a download reputation yet. Click <b>More info</b>, then <b>Run anyway</b>. The installer only puts Nota in your user folder and doesn't need administrator rights.</p></details>
+          <details><summary>What files can I add?</summary><p>PDFs (slides exported as PDF work well), Word documents (.docx), EPUB books, Markdown and plain text, web pages by link, and notes you paste in. Scanned PDFs with no text layer need the free Tesseract OCR installed.</p></details>
+          <details><summary>Does it work offline?</summary><p>Your library, reading, search and calendar all work offline. Answers, quizzes and skims need the internet, because they use the AI provider.</p></details>
+          <details><summary>Mac or Linux?</summary><p>Nota is Windows-only for now.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="brand"><img src="nota-mark.svg" alt="" style="width:22px;height:22px" />Nota</span>
+      <span>Study your own lectures.</span>
+      <span style="margin-left:auto">© <span id="year">2026</span> Nota</span>
+    </div>
+  </footer>
+
+  <script>
+    /*
+     * The download: always the newest release. Every release uploads the
+     * installer a second time as Nota-Setup.exe, so this link never changes.
+     * The version shown is read from GitHub, so it stays current too.
+     */
+    const REPO = 'aaronsu0105/nota';
+    const DOWNLOAD_URL = `https://github.com/${REPO}/releases/latest/download/Nota-Setup.exe`;
+    document.getElementById('download-link').href = DOWNLOAD_URL;
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((release) => {
+        if (release?.tag_name) document.getElementById('version').textContent = release.tag_name.replace(/^v/, '');
+      })
+      .catch(() => {});
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // The nav gets a hairline once the page scrolls under it.
+    const nav = document.getElementById('nav');
+    addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+    // Light or dark: follows the system until chosen.
+    const root = document.documentElement;
+    let stored = null;
+    try { stored = localStorage.getItem('nota-site-theme'); } catch {}
+    if (stored) root.dataset.theme = stored;
+    document.getElementById('theme').addEventListener('click', () => {
+      const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      root.dataset.theme = dark ? 'light' : 'dark';
+      try { localStorage.setItem('nota-site-theme', root.dataset.theme); } catch {}
+    });
+
+    // The quiz card: green and a flash for right, red for wrong, and why.
+    const quiz = document.getElementById('demo-quiz');
+    const verdict = document.getElementById('verdict');
+    const again = document.getElementById('again');
+    const WHY = 'An oral dose passes through the liver before it reaches the circulation, and the liver metabolises part of it. Less reaches the blood, so oral bioavailability goes down.';
+    quiz.addEventListener('click', (event) => {
+      const option = event.target.closest('.opt');
+      if (!option || quiz.dataset.done) return;
+      quiz.dataset.done = '1';
+      const right = quiz.querySelector('.opt[data-right="true"]');
+      right.classList.add('right', 'flash');
+      if (option !== right) option.classList.add('wrong', 'flash');
+      const correct = option === right;
+      verdict.className = `verdict show ${correct ? 'good' : 'bad'}`;
+      verdict.innerHTML = correct
+        ? `<b>✓ Correct.</b> ${WHY}`
+        : `<b>Not quite. The answer is B.</b> ${WHY} <br /><i>This one will come back in a few questions.</i>`;
+      again.style.display = 'inline';
+    });
+    again.addEventListener('click', () => {
+      delete quiz.dataset.done;
+      quiz.querySelectorAll('.opt').forEach((o) => o.classList.remove('right', 'wrong', 'flash'));
+      verdict.className = 'verdict';
+      again.style.display = 'none';
+    });
+
+    // Bionic reading: bold the start of each word; the text is unchanged.
+    const text = document.getElementById('bionic-text');
+    const plain = text.textContent;
+    const fix = (n) => (n <= 3 ? 1 : n === 4 ? 2 : Math.max(2, Math.round(n * 0.4)));
+    const bionic = plain.replace(/\p{L}+/gu, (w) => `<b>${w.slice(0, fix(w.length))}</b>${w.slice(fix(w.length))}`);
+    const toggle = document.getElementById('bionic');
+    toggle.addEventListener('click', () => {
+      const on = toggle.getAttribute('aria-checked') !== 'true';
+      toggle.setAttribute('aria-checked', String(on));
+      if (on) text.innerHTML = bionic; else text.textContent = plain;
+    });
+  </script>
+</body>
+</html>
