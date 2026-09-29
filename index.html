@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nota — the study app that reads your lectures with you</title>
+  <meta name="description" content="Nota is a free desktop study app. Drop in your lecture slides and notes; ask questions and get answers that point to the exact page, skim objectives, quiz yourself, and plan your term. Your files stay on your computer." />
+  <meta property="og:title" content="Nota — study with your own lectures" />
+  <meta property="og:description" content="Answers that cite your slides, quizzes and flashcards that remember what you missed, and a calendar built from your syllabus. Free for Windows." />
+  <meta property="og:image" content="nota-512.png" />
+  <meta name="theme-color" content="#d95d39" />
+  <link rel="icon" type="image/svg+xml" href="nota-mark.svg" />
+  <link rel="apple-touch-icon" href="nota-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --surface: #fffdfa;
+      --tint: #f0ebe1;
+      --ink: #1c1c1e;
+      --muted: #5b5852;
+      --line: #e3ddd1;
+      --clay: #d95d39;
+      --clay-deep: #b5461f;
+      --clay-soft: #fbe9e1;
+      --moss: #3f6b52;
+      --moss-soft: #e5f0e9;
+      --red: #b3372f;
+      --red-soft: #f9e4e1;
+      --shadow: 0 1px 2px rgba(40, 30, 20, .04), 0 12px 40px -12px rgba(40, 30, 20, .14);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #151412; --surface: #1e1d1a; --tint: #2c2a26; --ink: #ece8e1; --muted: #aca69c;
+        --line: #373530; --clay: #e57654; --clay-deep: #f29676; --clay-soft: #3b261f;
+        --moss: #8fba9e; --moss-soft: #1e2d25; --red: #ef8a80; --red-soft: #3a211e;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px -16px rgba(0,0,0,.6);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #151412; --surface: #1e1d1a; --tint: #2c2a26; --ink: #ece8e1; --muted: #aca69c;
+      --line: #373530; --clay: #e57654; --clay-deep: #f29676; --clay-soft: #3b261f;
+      --moss: #8fba9e; --moss-soft: #1e2d25; --red: #ef8a80; --red-soft: #3a211e;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px -16px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.6 Geist, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+    .serif { font-family: Newsreader, Georgia, serif; font-weight: 400; letter-spacing: -.01em; }
+    .mono { font-family: "Geist Mono", ui-monospace, monospace; }
+
+    /* ------------------------------------------------------------- nav */
+    nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid transparent; }
+    nav.scrolled { border-color: var(--line); }
+    nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 500 22px/1 Newsreader, Georgia, serif; }
+    .brand img { width: 30px; height: 30px; }
+    nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--muted); }
+    nav .links a { text-decoration: none; }
+    nav .links a:hover { color: var(--ink); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; text-decoration: none;
+      background: var(--clay); color: #fff; font: 500 15px/1 Geist, system-ui, sans-serif;
+      padding: 13px 20px; border-radius: 12px; transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--clay) 70%, transparent);
+    }
+    :root[data-theme="dark"] .btn:not(.ghost) { color: #1a1310; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn:not(.ghost) { color: #1a1310; } }
+    .btn:hover { transform: translateY(-1px); background: var(--clay-deep); }
+    .btn.small { padding: 9px 14px; font-size: 14px; border-radius: 10px; }
+    .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+    .btn.ghost:hover { background: var(--tint); }
+    .theme { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; display: grid; place-items: center; }
+    .theme:hover { color: var(--ink); background: var(--tint); }
+
+    /* ------------------------------------------------------------ hero */
+    .hero { padding: 72px 0 40px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+    .eyebrow { display: inline-block; font-size: 13px; line-height: 1.5; color: var(--muted); border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; border-radius: 999px; }
+    .eyebrow b { color: var(--moss); font-weight: 600; }
+    h1 { font: 400 clamp(44px, 6vw, 72px)/1.02 Newsreader, Georgia, serif; letter-spacing: -.025em; margin: 20px 0 18px; }
+    h1 em { color: var(--clay); font-style: italic; }
+    .lede { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 30px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .fine { font-size: 13px; color: var(--muted); margin-top: 14px; }
+
+    /* The app, drawn: a window with a real-looking answer in it. */
+    .window { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; transform: rotate(.6deg); }
+    .window .bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+    .window .bar img { width: 18px; height: 18px; }
+    .window .bar .dots { margin-left: auto; display: flex; gap: 6px; }
+    .window .bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: block; }
+    .chat { padding: 20px; display: grid; gap: 14px; font-size: 14.5px; }
+    .q { justify-self: end; background: var(--tint); padding: 9px 14px; border-radius: 14px 14px 4px 14px; max-width: 80%; }
+    .a { line-height: 1.65; }
+    .cite { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin: 0 2px; border-radius: 999px; background: var(--clay); color: #fff; font: 500 11px/1 "Geist Mono", monospace; vertical-align: 1px; }
+    :root[data-theme="dark"] .cite { color: #1a1310; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cite { color: #1a1310; } }
+    .source { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-left: 3px solid var(--clay); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--muted); background: var(--bg); }
+    .source b { color: var(--ink); font-weight: 500; }
+
+    /* --------------------------------------------------------- sections */
+    section { padding: 72px 0; }
+    .kicker { font: 500 12px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--clay-deep); }
+    h2 { font: 400 clamp(32px, 4vw, 46px)/1.08 Newsreader, Georgia, serif; letter-spacing: -.02em; margin: 12px 0 14px; }
+    .sub { color: var(--muted); font-size: 18px; max-width: 38em; margin: 0; }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+    .card h3 { font: 500 17px/1.3 Geist, sans-serif; margin: 14px 0 6px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+    .icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--clay-soft); color: var(--clay-deep); }
+    .icon svg { width: 19px; height: 19px; }
+
+    /* The quiz, drawn — and clickable. */
+    .split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; }
+    .quiz { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); }
+    .quiz .head { display: flex; justify-content: space-between; font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .quiz .question { font-size: 16px; font-weight: 500; margin: 12px 0 14px; }
+    .opt { width: 100%; display: flex; gap: 12px; align-items: flex-start; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 11px 13px; margin-top: 8px; font: 14.5px/1.45 Geist, sans-serif; cursor: pointer; transition: border-color .15s, background .15s; }
+    .opt:hover { border-color: var(--clay); }
+    .opt .l { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); font: 500 12px/1 "Geist Mono", monospace; }
+    .opt.right { border-color: var(--moss); background: var(--moss-soft); }
+    .opt.right .l { background: var(--moss); color: var(--surface); }
+    .opt.wrong { border-color: var(--red); background: var(--red-soft); }
+    .opt.wrong .l { background: var(--red); color: var(--surface); }
+    .opt.flash { animation: flash .7s ease 2; }
+    @keyframes flash { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 18%, transparent); } }
+    .opt.right.flash { color: var(--moss); } .opt.right.flash span:last-child { color: var(--ink); }
+    .opt.wrong.flash { color: var(--red); } .opt.wrong.flash span:last-child { color: var(--ink); }
+    .verdict { display: none; margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+    .verdict.show { display: block; }
+    .verdict.good { background: var(--moss-soft); }
+    .verdict.bad { background: var(--red-soft); }
+    .again { margin-top: 10px; font-size: 13px; background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; padding: 0; display: none; }
+
+    .bionic-demo { margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+    .bionic-demo .toggle { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--line); border: 0; position: relative; cursor: pointer; transition: background .2s; }
+    .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .switch[aria-checked="true"] { background: var(--clay); }
+    .switch[aria-checked="true"]::after { transform: translateX(18px); }
+    .bionic-text { font-size: 16.5px; line-height: 1.75; margin: 0; }
+    .bionic-text b { font-weight: 700; }
+
+    /* A lecture slide, drawn: what a source looks like in the app. */
+    .slide { position: relative; aspect-ratio: 4 / 3; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 7% 8%; box-shadow: var(--shadow); overflow: hidden; }
+    .slide .deck { font: 500 10.5px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .slide h4 { font: 500 clamp(17px, 2vw, 21px)/1.2 Newsreader, Georgia, serif; margin: 10px 0 12px; color: var(--clay-deep); }
+    .slide ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.45; }
+    .slide li::marker { color: var(--clay); }
+    .slide .hl { background: color-mix(in srgb, var(--clay) 18%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--clay) 55%, transparent); border-radius: 4px; padding: 0 3px; }
+    .slide .foot { position: absolute; left: 8%; right: 8%; bottom: 5%; display: flex; justify-content: space-between; font: 500 10.5px/1 "Geist Mono", monospace; color: var(--muted); }
+
+    /* Answers with sources: click a number, see the page. */
+    .answer-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+    .answer-demo .a { font-size: 15px; }
+    .answer-demo button.cite { border: 0; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+    .answer-demo button.cite:hover { transform: translateY(-1px); }
+    .answer-demo button.cite[aria-pressed="true"] { box-shadow: 0 0 0 3px color-mix(in srgb, var(--clay) 30%, transparent); }
+    .cited { display: grid; gap: 8px; }
+    .cited .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); }
+    .cited .meta b { color: var(--ink); font-weight: 500; }
+    .cited .slide { animation: rise .25s ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+    /* Flashcards: the card, the slide it came from, and two buttons. */
+    .flash-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); outline: none; }
+    .flash-demo:focus-visible { box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--clay) 40%, transparent); }
+    .flash-demo .head { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .flash-demo .body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px; padding: 20px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--ink); cursor: pointer; font: inherit; }
+    .fcard .term { font: 400 26px/1.2 Newsreader, Georgia, serif; }
+    .fcard .rule { width: 56px; height: 1px; background: var(--line); }
+    .fcard .meaning { font-size: 15px; line-height: 1.55; }
+    .fcard .hint { font-size: 12px; color: var(--muted); }
+    .fsource { display: grid; gap: 6px; align-content: start; }
+    .fsource .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .fsource .slide { transition: filter .25s ease; }
+    .fsource .slide ul { font-size: 12px; gap: 4px; }
+    .fsource .slide h4 { font-size: 16px; margin: 8px 0 8px; }
+    .fsource.hidden .slide { filter: blur(6px); }
+    .fsource .veil { display: none; font-size: 12px; color: var(--muted); text-align: center; }
+    .fsource.hidden .veil { display: block; }
+    .rate { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; margin-top: 12px; }
+    .rate button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 10px; font: 14px/1 Geist, sans-serif; cursor: pointer; }
+    .rate button:hover { border-color: var(--clay); }
+    .rate .hard { border-color: color-mix(in srgb, var(--red) 45%, transparent); background: var(--red-soft); }
+    .rate .easy { border-color: color-mix(in srgb, var(--moss) 45%, transparent); background: var(--moss-soft); }
+    .rate kbd { font: 500 11px/1 "Geist Mono", monospace; border: 1px solid currentColor; border-radius: 4px; padding: 1px 5px; margin-right: 6px; opacity: .7; }
+    .flash-done { display: none; text-align: center; padding: 28px 10px; }
+    .flash-done p { margin: 0 0 12px; color: var(--muted); }
+    .flash-demo.finished .body, .flash-demo.finished .rate { display: none; }
+    .flash-demo.finished .flash-done { display: block; }
+    .keys { margin-top: 10px; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+    /* The answer demo is a glance: compact, its slide only as tall as its text. */
+    #sources .answer-demo { width: 100%; max-width: 460px; justify-self: end; padding: 16px; gap: 12px; }
+    #sources .answer-demo .q, #sources .answer-demo .a { font-size: 14px; }
+    #sources .answer-demo .slide { aspect-ratio: auto; padding: 16px 20px; }
+    #sources .answer-demo .slide h4 { font-size: 17px; margin: 8px 0 10px; }
+    #sources .answer-demo .slide ul { font-size: 13px; gap: 5px; }
+    #sources .answer-demo .slide .foot { position: static; margin-top: 14px; }
+
+    /* The flashcard demo is the thing to try: full width under its heading. */
+    #flashcards .split { grid-template-columns: 1fr; gap: 28px; }
+    #flashcards .split > div:first-child { max-width: 760px; }
+    #flashcards .flash-demo { width: 100%; max-width: 1040px; padding: 26px; }
+    #flashcards .flash-demo .body { gap: 18px; }
+    #flashcards .fcard { min-height: 340px; padding: 28px; gap: 16px; }
+    #flashcards .fcard .term { font-size: 36px; }
+    #flashcards .fcard .meaning { font-size: 18px; max-width: 30em; }
+    #flashcards .fcard .hint { font-size: 13px; }
+    #flashcards .fsource .meta { font-size: 13px; }
+    #flashcards .fsource .slide h4 { font-size: 22px; margin: 10px 0 12px; }
+    #flashcards .fsource .slide ul { font-size: 15px; gap: 7px; }
+    #flashcards .rate { margin-top: 16px; gap: 10px; }
+    #flashcards .rate button { padding: 14px; font-size: 15px; }
+
+    /* ------------------------------------------------------------ steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; counter-reset: step; }
+    .step { border-top: 2px solid var(--line); padding-top: 18px; }
+    .step::before { counter-increment: step; content: "0" counter(step); font: 500 13px/1 "Geist Mono", monospace; color: var(--clay-deep); }
+    .step h3 { font: 500 18px/1.3 Geist, sans-serif; margin: 10px 0 6px; }
+    .step p { color: var(--muted); margin: 0; font-size: 15px; }
+
+    .privacy { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .privacy ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+    .privacy li { display: flex; gap: 12px; font-size: 15px; }
+    .privacy li svg { flex: none; width: 20px; height: 20px; color: var(--moss); margin-top: 2px; }
+
+    .download { text-align: center; padding: 88px 0; }
+    .download img { width: 84px; height: 84px; }
+    .reqs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 22px; font-size: 13.5px; color: var(--muted); }
+
+    details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+    details summary { cursor: pointer; font-weight: 500; font-size: 16.5px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    details summary::after { content: "+"; color: var(--muted); font-size: 20px; line-height: 1; }
+    details[open] summary::after { content: "–"; }
+    details p { color: var(--muted); margin: 10px 0 0; max-width: 46em; }
+    .faq { max-width: 780px; margin-top: 28px; }
+
+    footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 13.5px; color: var(--muted); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+    footer .brand { font-size: 18px; color: var(--ink); }
+
+    @media (max-width: 900px) {
+      .hero, .split, .privacy { grid-template-columns: 1fr; gap: 36px; }
+      .flash-demo .body { grid-template-columns: 1fr; }
+      #flashcards .flash-demo { padding: 16px; min-width: 0; }
+      #flashcards .flash-demo .body > * { min-width: 0; }
+      #flashcards .fcard { min-height: 240px; padding: 20px; }
+      #flashcards .fcard .term { font-size: 27px; overflow-wrap: anywhere; }
+      #flashcards .fcard .meaning { font-size: 16px; }
+      #flashcards .rate button { padding: 11px 8px; font-size: 14px; }
+      /* A narrow slide grows to fit its text rather than keep its shape. */
+      .slide { aspect-ratio: auto; }
+      .slide .foot { position: static; margin-top: 14px; }
+      .hero { padding-top: 40px; }
+      .features, .steps { grid-template-columns: 1fr; }
+      nav .links { display: none; }
+      nav .wrap { gap: 12px; }
+      nav .theme { margin-left: auto; }
+      .window { transform: none; }
+      .privacy { padding: 26px; }
+      section { padding: 52px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  
+    .buddy-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .buddy-demo .modes { display: flex; gap: 4px; padding: 10px; border-bottom: 1px solid var(--line); }
+    .buddy-demo .modes button { flex: 1; border: 0; border-radius: 10px; padding: 8px 10px; font: 500 13px/1 Geist, sans-serif; color: var(--muted); background: none; cursor: pointer; }
+    .buddy-demo .modes button[aria-pressed="true"] { background: var(--tint); color: var(--ink); }
+    .buddy-demo .app { display: grid; grid-template-columns: 150px 1fr; min-height: 390px; }
+    .buddy-demo .lib { border-right: 1px solid var(--line); padding: 12px 8px; font-size: 12.5px; }
+    .buddy-demo .lib .k { font: 500 10px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 6px 8px; }
+    .buddy-demo .row { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 8px; min-height: 30px; }
+    .buddy-demo .row .n { flex: 1; font-weight: 500; }
+    .bhead { position: relative; width: 22px; height: 22px; overflow: hidden; border-radius: 6px; flex: none; display: none; }
+    .bhead .bud { position: absolute; left: -5px; top: -7px; }
+    .buddy-demo.on .bhead { display: block; }
+    .bhead.sick::after { content: ""; position: absolute; right: 0; top: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); opacity: .6; }
+    .bud { display: block; background-repeat: no-repeat; image-rendering: pixelated; animation: bud var(--dur) steps(var(--frames)) infinite; }
+    @keyframes bud { from { background-position: 0 0; } to { background-position: calc(-1 * var(--sheet)) 0; } }
+    @media (prefers-reduced-motion: reduce) { .bud { animation: none; } }
+    .buddy-demo .pane { display: flex; flex-direction: column; min-width: 0; }
+    .buddy-demo .notice { display: none; align-items: center; gap: 8px; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+    .buddy-demo .notice b { color: var(--ink); font-weight: 500; }
+    .buddy-demo .notice .help { margin-left: auto; border-radius: 999px; background: var(--tint); padding: 3px 10px; font-size: 12px; color: var(--ink); }
+    .buddy-demo.on.sick .notice { display: flex; }
+    .buddy-demo .chat, .buddy-demo .clinic { padding: 16px; font-size: 13.5px; }
+    .buddy-demo .chat p { margin: 0 0 12px; color: var(--muted); }
+    .buddy-demo .chat .ask { margin-top: 70px; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 12px; color: var(--muted); }
+    .buddy-demo .clinic { display: none; grid-template-columns: auto 1fr; gap: 16px; align-items: stretch; flex: 1; }
+    .buddy-demo.on .clinic { display: grid; }
+    .buddy-demo.on .chat { display: none; }
+    .buddy-demo .room { background: linear-gradient(var(--tint), var(--bg)); border-radius: 14px; padding: 18px 16px; display: grid; justify-items: center; align-content: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .buddy-demo .room b { font: 500 16px/1.2 Newsreader, Georgia, serif; color: var(--ink); }
+    .buddy-demo .case .k { font: 500 10px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .buddy-demo .case p { margin: 6px 0 10px; }
+    .buddy-demo .case .obj { font-size: 12px; color: var(--muted); }
+    .buddy-demo .case .write { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px; color: var(--muted); font-size: 12.5px; min-height: 48px; }
+    .buddy-demo .case .go { margin-top: 10px; border: 0; border-radius: 10px; padding: 8px 14px; background: var(--ink); color: var(--surface); font: 500 13px/1 Geist, sans-serif; cursor: pointer; }
+    .buddy-demo .case .cured { display: none; margin: 8px 0 0; color: var(--moss); font-weight: 500; }
+    .buddy-demo.healed .case .cured { display: block; }
+    .buddy-demo.healed .case .go { display: none; }
+    @media (max-width: 640px) {
+      .buddy-demo .app { grid-template-columns: 1fr; }
+      .buddy-demo .lib { border-right: 0; border-bottom: 1px solid var(--line); }
+      .buddy-demo .clinic { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="nota-mark.svg" alt="" />Nota</a>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#sources">Sources</a>
+        <a href="#quiz">Quizzes</a>
+        <a href="#flashcards">Flashcards</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <button class="theme" id="theme" aria-label="Switch light or dark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="btn small" href="#download" data-download>Download</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div>
+        <span class="eyebrow"><b>Free</b> · for Windows · your files stay on your computer</span>
+        <h1>Study your own lectures, <em>with a tutor that read them.</em></h1>
+        <p class="lede">Drop in your slides, notes and syllabus. Nota answers questions and points to the exact page it read, walks you through the learning objectives, and quizzes you on what you keep missing.</p>
+        <div class="cta">
+          <a class="btn" href="#download" data-download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download for Windows
+          </a>
+          <a class="btn ghost" href="#features">See what it does</a>
+        </div>
+        <p class="fine">Windows 10 or 11 · 64-bit · free AI key from Google or Groq, set up in a minute</p>
+      </div>
+
+      <div class="window" aria-label="Nota answering a question about a lecture">
+        <div class="bar"><img src="nota-mark.svg" alt="" /> Tutor · Pharmacology <span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="chat">
+          <div class="q">Why does an oral dose reach the blood at a lower level than an IV one?</div>
+          <div class="a">Because of the <b>first-pass effect</b>: a drug absorbed from the gut goes to the liver before it reaches the circulation, and the liver metabolises part of it <span class="cite">1</span>. What gets through is the <b>bioavailability</b>, 100% for IV and less for oral <span class="cite">2</span>.</div>
+          <div class="source"><span class="cite">1</span><div><b>Drug Absorption and Distribution · p. 14</b><br />“…passes through the hepatic portal system before reaching systemic circulation…”</div></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <span class="kicker">What it does</span>
+        <h2 class="serif">Everything a study session needs, grounded in your own material.</h2>
+        <p class="sub">Nota only answers from what you give it, and shows where each answer came from. If it isn't in your files, it tells you.</p>
+        <div class="features">
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10M7 12h6"/><path d="M21 12a9 9 0 1 1-4-7.5L21 3v6h-6"/></svg></div>
+            <h3>Answers with receipts</h3>
+            <p>Every claim cites the slide or page it came from. Click a number and the passage opens, highlighted.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+            <h3>Skim a lecture</h3>
+            <p><span class="mono">/skim</span> lists the learning objectives, asks for the key words you remember, then builds each concept up step by step.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+            <h3>Quizzes and flashcards that remember</h3>
+            <p>Multiple choice or written answers, and flashcards in plain words for the names and terms you have to memorise, each beside the slide it came from. Missed ones come back until they stick.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <h3>A calendar from your syllabus</h3>
+            <p>Nota reads your syllabi for exams and deadlines, adds them to a calendar, and spots duplicates. Reading week and exam periods show as one bar across their days. Change dates by just saying so.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg></div>
+            <h3>Figures when a picture helps</h3>
+            <p>Concentration curves, comparisons and step diagrams, drawn right in the answer with <span class="mono">/diagram</span>.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></div>
+            <h3>Made for reading</h3>
+            <p>Bionic reading, dark mode, high contrast, and a font designed to be easy to read.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Try it</span>
+          <h2 class="serif">Every answer shows the page it came from.</h2>
+          <p class="sub">Nota answers from your own slides and readings, and numbers each claim. Click a number to see the exact slide, with the passage it used highlighted. In the app, click the slide and it opens at that page.</p>
+        </div>
+
+        <div class="answer-demo" id="demo-answer">
+          <div class="q">What happens to the cell in caseous necrosis?</div>
+          <div class="a">The dead tissue turns soft and crumbly, like cottage cheese, which is where the name comes from <button class="cite" data-cite="1" aria-pressed="true" aria-label="Show source 1">1</button>. It is the typical pattern in tuberculosis, where a wall of immune cells forms around the dead centre <button class="cite" data-cite="2" aria-pressed="false" aria-label="Show source 2">2</button>.</div>
+          <div class="cited" id="cited" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quiz">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Try it</span>
+          <h2 class="serif">Answer on the card. Nota remembers what you missed.</h2>
+          <p class="sub">Questions come from your lectures. Choose an option or write your answer out, and Nota tells you what you got right and what to refine. Missed questions come back a few questions later, until you get them.</p>
+
+          <div class="bionic-demo">
+            <div class="toggle"><span>Bionic reading</span><button class="switch" id="bionic" role="switch" aria-checked="false" aria-label="Bionic reading"></button></div>
+            <p class="bionic-text" id="bionic-text">The first letters of each word are set in bold, so your eye lands on the start of a word and reads the rest faster. The words themselves never change.</p>
+          </div>
+        </div>
+
+        <div class="quiz" id="demo-quiz">
+          <div class="head"><span>Question 3 · Drug absorption</span><span>Multiple choice</span></div>
+          <div class="question">What does the first-pass effect reduce?</div>
+          <button class="opt" data-right="false"><span class="l">A</span><span>Renal clearance</span></button>
+          <button class="opt" data-right="true"><span class="l">B</span><span>Oral bioavailability</span></button>
+          <button class="opt" data-right="false"><span class="l">C</span><span>Volume of distribution</span></button>
+          <button class="opt" data-right="false"><span class="l">D</span><span>Plasma protein binding</span></button>
+          <div class="verdict" id="verdict" role="status"></div>
+          <button class="again" id="again">Try again</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="flashcards">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Try it</span>
+          <h2 class="serif">Flashcards in plain words, beside the slide they came from.</h2>
+          <p class="sub">Pick a lecture or a whole folder and Nota makes cards for the names and terms you have to memorise, explained the way a friend would. Turn a card and the slide it came from appears next to it, so you remember the picture too. Hard cards come back soon; easy ones wait days. Your place is saved.</p>
+        </div>
+
+        <div class="flash-demo" id="demo-flash" tabindex="0" aria-label="Flashcard demo. Space turns the card, 1 is hard, 2 is easy.">
+          <div class="head"><span>Flashcards · Cell injury</span><span id="flash-left">4 left</span></div>
+          <div class="body">
+            <button class="fcard" id="fcard" aria-live="polite"></button>
+            <div class="fsource hidden" id="fsource">
+              <div class="meta"><span id="fsource-name"></span><span id="fsource-page"></span></div>
+              <div class="slide" id="fslide"></div>
+              <div class="veil">Shown when you turn the card</div>
+            </div>
+          </div>
+          <div class="rate">
+            <button class="hard" id="rate-hard"><kbd>1</kbd>Hard</button>
+            <button id="rate-next"><kbd>Space</kbd><span id="next-label">Show</span></button>
+            <button class="easy" id="rate-easy"><kbd>2</kbd>Easy</button>
+          </div>
+          <div class="flash-done">
+            <p id="flash-summary"></p>
+            <button class="btn small ghost" id="flash-again">Start over</button>
+          </div>
+          <p class="keys">Click the card to select it, then use Space, 1 and 2.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="buddies">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Optional</span>
+          <h2 class="serif">Study buddies, only if you want them.</h2>
+          <p class="sub">Nota stays calm and focused by default. Switch on study buddies and each course gets a small pixel character who gets run down when the course goes unstudied. In science courses they catch a real condition from your own lectures. Explain it the way your learning objectives ask and they recover. One click turns them off again.</p>
+        </div>
+
+        <div class="buddy-demo" id="demo-buddies">
+          <div class="modes" role="group" aria-label="How Nota looks">
+            <button id="mode-focus" aria-pressed="true">Focused</button>
+            <button id="mode-buddies" aria-pressed="false">Study buddies</button>
+          </div>
+          <div class="app">
+            <div class="lib">
+              <div class="k">Courses</div>
+              <div class="row"><span class="n">Pathology</span><span class="bhead"><i class="bud" style="width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEMklEQVR4nO3dz4oUVxjG4boSJTAQERQXQoi4cS1CsnKdRVa5G680m5ClUgMlbdHVTFX/ect+nx8UzsLTz+nhfKcZcHAYJEmSJEmSJEmSJEmSJEmSJEmSrtDDL8+/nnr4fEn3WXr++d2+VF1qAKfXf/vm9cnnWvvgd/vzfbR+APL57n9+mz/fR9v88cv95AAeup///PSkry+5B363P+zgA4jPb/XT88/v9ofy+eOX+8kB3GIffjP4/MQe7ukDkM93//Mb/a17uJf545f7yQGc24fPU/dxzh743f6xPbR9APL57n9+o39sD03zxy/3kwN4zD729dw7tr8te+B3+0t7aPoA5PPd//xGf2kPLfPHL/fTAzj5a97sJb8JfP4ezj+f3+yn55/f7afPP5+f8HcxgA8Hv/iwxX4447ej+fz0+efzm/30/PO7/fT55/NTfnQAJ3Nae84bP3wtPn/NHtIfQHx+o5+ef363P5TPH7/cTw/g3N9i8/k/6wcQn8/fz/zzu/30+efzb+nHB3CY/QR0iWeNze/20+efz2/2h/L7h+/+5/NT/vdN7OkC+Ofj76sePv9n/QDi8/k/rk/PP7/bT59/Pv+WfnwA3714ttme72F8LT5/Tenzz+c3++n553f76fPP5yf9+ACOa7a682d8rbV74PPT55/Pb/bT88/v9tPnn89P+dEBPGa/fvnr1///+/fxzyVn6e9Mr/fUPfC7/aU93Or88/nNfnr++d3+0h5a5o9f7qcHcMmfnlP+sb/D51/CT59/Pr/ZT88/v9tPn/+kf85zD++/yd/NAI6/vXyuP74Gn3+JAUx/APH5TX56/vndfvr878k/57mH99/kxwdw2sOhv/WZ/DU2v9tPn38+v9kfyu8fvvufz0/ev/ELYGxc++WvPx6fte60bnyNtS6fnz7/fH6zP5TfP3z3P5+f8h9LXwDTN+GcZ9Mb5/N3cP75/GY/Pf/8bj99/vn8pB8fwFN7+PvDb9/f7Pj1NWx+t58+/3x+s39qDw33D9/9z+en/JObuNUFsLSHyZ32cS2b3+2nzz+f3+wv7aHl/uG7//n85P0bvwCmPTzlJ6LN/96Jzz9ht34A8vlpfyi/f/jufz4/ef/GL4D5Pj6/f/XDc22X3+2nzz+f3+zP99F2//Czfvr88/l7uH/jF8C0h2P+LWx+t58+/3x+sz+U3z989z+fn7x/4xeAlCx9/vn8Zl9Klj7/fL77V5IkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkXbHpvzq23vrEekm50vNvffd6qbr0AFpvvfXWW2+99dZbb731t1sf38Al/nODc16D3+2nz7/11jevT88/v9tPn3/rrY/+AJAeQClZ+vzz+c2+lCx9/vn8pC9JkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJktb1DfEykCmFN7zCAAAAAElFTkSuQmCC),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACkElEQVR4nO3bQUpbURiG4bMsoeAynHTYhXTiqAiFDuuky3EDzlyBs4JzSwa33KQW7c01302/54ELajTvMZ7zhyAZAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3uD22/XzkktfHzhv6fOv392HaqkDON3Pw/3d89PPx9/X7vMv32/2rpe+59h16Hf3D9fR+gSor2/+67f1D9fRdv70y/vJA7j7ufl9LelPHy9Zg353f2zgCUhfv7WfPv/63f1Rfv70y/vpA7ikP/3C+vrn/gSkr69/Xudfv7uf3v/6+mv1N3kAP3/9Ef0D6Hf30/tfX7+5nz7/+t399P7X1z9Vf5MHUF9fX19fX19fX1//ffrxBaT/BaKvv7X9r6/f3E+ff/3ufnr/6+ufqr+JA7i7j+la0p8uff0l/fT+19dv7qfPv353P73/9fVT/fgBnNZw2/oubP1oP73/9fWb+6N8/uib//r6yfkbHwDzB2Jp/5i2fnc/vf/19Zv7o3z+6Jv/+vrJ+RsfAPMH4urjp73rta+v0dbv7qf3v75+c3+Uzx99819fPzl/4wNgWsO/9Nds63f30/tfX7+5P8rnj775r6+fnL/VA0BfX19fX19fX1+/rR9fgL6+vr6+vr6+vr6+FwD6+vr6+vr6+vr6+v/bC4Dd/V1+uPjjmvp/u01ff801NA8AfX3zX7+xP8rPn355P30A9fX19fX19fX19fVP+AI4voDZO6Hn11tu09dfo908APT1zX/91n56/+vrp+dvfABAUnr/6+s39yEpvf/19c1fAADgKL8AUP8lw+PRn34AAAAASUVORK5CYII=);background-size:768px 48px;--sheet:768px;--frames:24;--dur:6s"></i></span></div>
+              <div class="row"><span class="n">Pharm</span><span class="bhead sick"><i class="bud" id="ava-head" style="width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEc0lEQVR4nO3csW4TSRzHcb8N0hU8DDT3AjQ8AgXSieuQaECiCTUtEjTX06ekvyegOV0JcqSNlsWb2M56fzP7/3ylFQg8/kzGyczGiOx2kiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJXXX1958/xhefz+dLkrTp0gdgwh97119e/XKtMRc+n1/Xn5tLlf23Jb966fXn8/kr++kDMOXPmXPX0vPg8/l1/ek8qu2/rfhzc6lyA5Befz6fH/DTB2DSH7v/Xn+8uebc6d8tMQc+n1/X3xXff1vwp/OodgOQXn8+nx/y0wdg0p/ac86l5sDn8+v6h+ZQaf9twd+lD2BvgPH5/ISfPgCT/ikb7n3XOe/O8Pn8uv50DtX23xb8Q3OodAOQXn8+nx/y0wdg0l/S3l//vH5xcx07Bz6fX9dfeg697b8t+NM5VLsBSK8/n88P+ekDcMv+9RGbMp/P51/CT+9/PfhLz6G3G4D0+vP5/Jy/6QMw4Q/m+Pd8Pp+/hp/e//h93QBsef35fP49e8DWDsBL+uN3V+4ax+fz+Uv7p8yTn/F7uwHY2vrz+fzj/a4OwIQ/9r59fv/LNTcfPp/P38L+xz/92qqfXn8+n7+s3/wBuKY/fb5D5tzF5/P5Pe9//Ho3AK2vP5/Pv5zf1AHYgn+sx+fz+Uv76f2vsl/xBqCl9efz+ev6zR2ALfhfP/x1e81508dMn+fN8yf8Tv0lPv96/vj5/X/+9bz/Jv1qNwCtrT+fz1/Pb/IATPuP/3j04///vt/8OudPH8Pfjr/EF2DPHz8/66f3v+r+El//vdwAtLj+fD5/Hb/JA3BNf/+4q8m7LfvnHK67/Oljxs/D5/P5re9//PbeAEj76fXn8/nr+PEDMO0Pcxg/96d3L2+vOX/uMfvnGmx+n/5Dri18/Pz1/PT+V91v8QZ8TT+9/nw+P3v/W/oAnpvDOdfwYg42n8/nn2pX2399A+YNMD6fn/EPTuKcq9cDmM/n8/k1/db+BXBtP73+fD4/68cnkPYfOof92N2BH+vG5/P5l7THc+Dz+Xw+/9Tzr/QBfN8c3j57enON/2z4X9iDzefz+b3uf5X99AGc9tPrz+fz8/e/pQ/g8RyOeTGGx43H8vl8fq/7X2U/fQCn/fT68/n8/P1v6QP40DzGP3N1WPCpy+fz+VvY/yr76QM47e+Kv/58fnX/t4lUO4Cnczjk3zVmPAc+n88/1668//oGzBtgfD4/d/9b+gA+Nz6fz9/C/lfZTx/AaX9X/PXn86v7Z5WeQNof5pCy+Xx+XT+9/23JTx/Aaf+c+Hx+Xf92ElUPYElKlt7/KvvpAzjt74q//nx+dV+SpJKlD+C0L0mSJEmSJEmSJEmSJEmStEbDz1Y23njjjV97vCRJkdIHoPHGG2+88cYbb7zxxhu/3vj4BNLj7/vZypd+Dj6fX9dP73/GG2+88cbXHB8/ANO+JKVK7398Pp/Pr+lLkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJWqSfrwEyXcs1MjkAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACQElEQVR4nO3bwUkDQRiG4ZSlCF4ED/bg1RK82kDwbB9agTfBBqwmssgsSVQ0u4t/xu95YECN2fc/zTiiqxUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAByT9d3NZsrS19fXB4AuVR+AVf32nOenh83b6+O4hs9f7m931lffM3cOfX393P7+HGn7r76+vr5+Ub89KPEAHt63/awp/fbxlBn09fVz+6vw/VdfX19fv6hffQB22b8+/Vj6+vr6afufvr6+vn73/T4PQH19fX19fX19fX19F4Aeb2D6+vr6Xe1/+vr6+vrd9/s8APX19fX19fX19fX1XQCm9odntDWl35a+vr7+of3q/U9fX19fP69/FAdgZb/NsE79L3B9ff2yfvX+p6+vr6+f2R+HSD2At2eY05/T1tfXz+1X73/6+vr6+pn9cYjUA3h7hmFdXV7srJ++vkRbX18/t1+9/+nr6+vrZ/bHIVIP4O0ZDukv2dbX18/tV+9/+vr6+vqZ/XGI1ANYX19fX19fX19fP61fPoC+vr6+vr6+vr6+vguAvr6+vr6+vr6+vr4LwPJ/g3t+dvJptf53r+nr6+svNUPq/quvr6+vX9SvPgD19fX19fX19fX19f/wF1DVA1T32wz76zev6evr689tJ++/+vr6+vp1P/9GH8AAlar3P319fX39/9V/B1i1FRo3PndhAAAAAElFTkSuQmCC);background-size:768px 48px;--sheet:768px;--frames:24;--dur:6s"></i></span></div>
+              <div class="row"><span class="n">MBI</span><span class="bhead"><i class="bud" style="width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAADzElEQVR4nO3dQWoUURiF0d6JCAHBQXDgNhw4chPuQHAPbsKxugTBuTsQHDoSRBxGOlDQKbpiuq2uW933HChUzOvvBd7/ioyy2QAAAAAAAAAAAAAAAAAAAMzh6vGjm91HXx/okJ5//e4+VEsM4G7v+bPrO88Se9Hv7k/tpfEFqK/v/tdv6k/tpWX+9Mv7qQGcak49c+9Dv7s/3kfrC1Bf3/2v39Yf76Nt/vTL+8kB3O2+evni9pnqjv9vjj3od/c3K3gB6eu39tPzr9/d35TPn355PzmA4/ZU51R70O/u79tD2wtQXz/VT8+/fnd/3x6a5k+/vJ8cwEN+4vnXc8we9Lv74z00vgD19VP99Pzrd/fHe2ibP/3yfnIA52wfswf97v7cezjHF6C+/iXM3jF70O/uz72Hc5s//fJ+egD19fX19fX19fX19ZfrRzdwivYhe9Dv7p9qD+d0Aejrp/rp+dfv7p9qD+cyf/rl/fQA6uvr6+vr6+vr6+sv149vQF9fX19fX19fX19/uX58A+P+1eg3nh366Ouf0wDq6+vfXdN8/+i7//X1l+qvbgC3//717etRj77+HP30+dfXb+6n51+/u58+//r6S/VXOYDbz7p++uTmz++ft39O9cZfo69/CS8gff32fnr+9bv76fOvr79Ef7UDuP3M4bmvv/s1+vqX8gLS12/vp+dfv7ufPv/NPwClv/+W/qoHUF9fX19fX19ff7n+Mc8lff8t/fgG1noA9bv76fOvr9/cT8+/fnc/ff719aM/ACQH8MfnTwe3t2v09S/lBaSv39pPz79+dz99/vX1l+obQH39lZ1/ff3mfnr+9bv76fOvr79Uf5UDuO+z3795vffv+vpL9NPnX1+/uZ+ef/3ufvr86+ufor/KAfzw7u3kHsbt718+3j7bNfr6l/oC0tdv6afnX7+7nz7/+vpL9eMDON7DsGb7eVP72H2Gr5v6HH39h7bX8gLS12/pj/fQdv/ou//19ZP3b/wCGNbuWzN8/vCN7n7DQ/chn6Ovf1+79QWor5/ub8rvH333v75+8v6NXwD3merP2dDv7qfPv75+c/8+DfePfrafPv/6+mu9f+MXACSlz7++fnMfktLnX1/f/QsAAAAAAAAAAAAAAAAAAAAAAJzQ8MsNrLc+sR7ISc+/9d3roVp6AK233nrrrbfeeuutt9765dbHNzDHLzf4n8/Q7+6nz7/11jevT8+/fnc/ff6ttz76A0B6ACEpff719Zv7kJQ+//r6yT4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHCYvzpDaXtvsfU2AAAAAElFTkSuQmCC),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAChElEQVR4nO3bMU4CURiF0bdIGlfgDmxdgI2dK3BP9jbuQkMxyYiCIzBc9J6TTGIg8j3Iez+ZgjEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGCBze3N+zGXvj7wt6XPv353H6qlDuD0OneP9+8Pz0+frvlj+54/dR363f3ddbR+Aerrm//6bf3ddbSdP/3yfvIAbv/v0OtPjx96bvr7mDXod/fHFXwB6eu39tPnX7+7P8rPn355P30Al/QPXfr6a/fT+19fv7mfPv/63f30/tfXX+0G+BoP4PSGl6xHX3/tA6ivr99z/vW7++n9r69/qf5VHkB9fX19fX19fX19/XX68QWk74D09a9t/+vrN/fT51+/u5/e//r60RuASx/A37zh7/rTpa9/TD+9//X1m/vp86/f3U/vf339VD9+AKc1bPb8CnpJf7Pir7D1/3c/vf/19Zv7o3z+6Jv/+vrJ+RsfAPMP4tj+KW397n56/+vrN/dH+fzRN//19ZPzNz4A5h/EbuOnx8/R1u/up/e/vn5zf5TPH33zX18/OX/jA2Baw2/652zrd/fT+19fv7k/yuePvvmvr5+cv9UDQF9fX19fX19fX7+tH1+Avr6+vr6+vr6+vr4bAH19fX19fX19fX39/3YDsH29t9eXL9fU3/ecvv4519A8APT1zX/9xv4oP3/65f30AdTX19fX19fX19fXv+ANcHwBs19Cz68lz+nrn6PdPAD09c1//dZ+ev/r66fnb3wAQFJ6/+vrN/chKb3/9fXNXwAA4CQf89M8G1R/7fUAAAAASUVORK5CYII=);background-size:768px 48px;--sheet:768px;--frames:24;--dur:6s"></i></span></div>
+              <div class="row"><span class="n">Physiology</span><span class="bhead"><i class="bud" style="width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAADzklEQVR4nO3dwWoTURiG4bkSRRAUQXEhiMWNaxF05dqFK+/GK3UjListjISQiUlmOl+S73lgqGBP3xM4/wmlSocBAAAAAAAAAAAAAAAAAAAAAADgYE+fPL7d9ejrA9ctPf/63X2olhjAzc6b1692Pg+5F/3u/tReGt8A9fXd//pN/am9tMyffnk/OYBj8+uXT/fPVH/z75bcg353fziDNyB9/dZ+ev71u/tD+fzpl/eTA7jZ3tV56D3od/e399D4Bqiv7/7Xb+xv76Ft/vTL+8kB3PfdzqHPnD3od/eHM3gD0tdv7afnX7+7P5TPn355PzmAS7Tn7EG/u7/UHi75DVBf/5Jnb84e9Lv7S+3hUudPv7yfHkB9fX19fX19fX19/fX68Q2M/acT/+P50Edf/xIHUF9fPz//+t399PnX10/0z2YA7z7++PjupEdf/9LfgPT12/vp+dfv7qfPv77+2v34AN48fzSrvbmHu6+lr3+M9PnX12/up+dfv7ufPv/6+sl+fADv1sxtj4++/in99PnX12/uz22Pj77+Kf30+dfXT/XPYgCX7B+7B339azr/+vrN/fT863f3j2nr66f70QHc1X714tntn9+/7j9OdaY+Z/x6h+5Bv7s/tYe1zr++fnM/Pf/63f2pPbTMn355Pz2AU/3x2dff9Tn6+kv00+dfX7+5n55//e5++vwn+3Oea3j9Tf2zHUB9fX19fX19ff31+nOea3j9Tf38BtI/AtGv7qfPv75+c39qD2vNv353P33+9fWT/clNrHkBjHv4+e3z/XNsc1x3SldfP33+9fWb+0P5/aPv/tfXT/X/bSJ9ASzx4vX1T+2nz7++fnM/Pf/63f30+dfXT/XjA7hvD98/vN355yXb+t399PnX12/u79tDw/2j7/7X10/1925irQvgf3vYbn99//L+Waqt391Pn399/eb+//Zw7fePvvtfXz95/8YvgHEPh3xHdHPqv3fS19/TTp5/ff3m/lB+/+i7//X1k/dv/ALY3sf4Qjdf8EN29bv76fOvr9/c395H2/2jn+2nz7++/jncv/ELYNzDrv4abf3ufvr86+s394fy+0ff/a+vn7x/4xcAJKXPv75+cx+S0udfX9/9CwAAAAAAAAAAAAAAAAAAAAAAPKDxlxtYb31iPZCTnn/ru9dDtfQAWm+99dZbb7311ltvvfXrrY9vYIlfbjDna+h399Pn33rrm9en51+/u58+/9ZbH/0GID2AkJQ+//r6zX1ISp9/ff1kHwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOM5fErMfToSYsWMAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACq0lEQVR4nO3bwWpTQRiG4bk3wYXZewNuu3Yj4gUouO9K8Kbcu/EuKqcw5XBQaE5O80W/54GBkpC8QzvzlywyBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPMPp7buHPUtfH/i3pe+/fncfqqUu4Hyfuw+fHz59/fa4vt9/efp5Wb9+/vjjc8trLt2Hfnd/u4/Wf4D6+ua/flt/u4+2+6df3k9ewOV16/fa058/79mDfnd/3MA/IH391n76/ut390f5/dMv76cvoL6+vr6+vr6+vr7+FT8ApzewvGZ572Wt32u71v2P7+8e1+zP1+vr7+mnz7++fnM/ff/1u/vp86+vn+rf7AU8p/8SfwD9nn76/OvrN/fT91+/u58+//r6qf5NXMBz++ulr3/tfvr86+s399P3X7+7nz7/+vpH9W/iAi7vMdee/lz6+nv66fOvr9/cT99//e5++vzr66f68Qs493DafAv6nP7pBb6Frd/RT59/ff3m/iifP/rmv75+cv7GB8D6F7G3f0lbv7ufPv/6+s39UT5/9M1/ff3k/I0PgPUvYmm9ef3qac3H14/NLz0c1dbv7qfPv75+c3+Uzx99819fPzl/4wNg7uGc/pFt/e5++vzr6zf3R/n80Tf/9fWT87d6AOjr6+vr6+vr6+u39eMb0NfX19fX19fX19f3AUBfX19fX19fX19f/3/7ADDb2zX7f3tOX//oPbQOAH1981+/sT/K759+eT99AfX19fX19fX19fX1r/gBOL6B1Teh1+s5z+nrH9FuHgD6+ua/fms/ff719dPzNz4AICl9/vX1m/uQlD7/+vrmLwAAcJHfXb3wxiV9iLUAAAAASUVORK5CYII=);background-size:768px 48px;--sheet:768px;--frames:24;--dur:6s"></i></span></div>
+            </div>
+            <div class="pane">
+              <div class="notice"><span><b>Ava</b>, your Pharm buddy, isn't feeling great.</span><span class="help">Help</span></div>
+              <div class="chat">
+                <p>Hi, I'm your tutor for this library. Ask about anything in your courses, and I'll point at the exact page each answer came from.</p>
+                <div class="ask">Ask your tutor anything…</div>
+              </div>
+              <div class="clinic">
+                <div class="room"><i class="bud" id="ava-body" style="width:96px;height:144px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEc0lEQVR4nO3csW4TSRzHcb8N0hU8DDT3AjQ8AgXSieuQaECiCTUtEjTX06ekvyegOV0JcqSNlsWb2M56fzP7/3ylFQg8/kzGyczGiOx2kiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJXXX1958/xhefz+dLkrTp0gdgwh97119e/XKtMRc+n1/Xn5tLlf23Jb966fXn8/kr++kDMOXPmXPX0vPg8/l1/ek8qu2/rfhzc6lyA5Befz6fH/DTB2DSH7v/Xn+8uebc6d8tMQc+n1/X3xXff1vwp/OodgOQXn8+nx/y0wdg0p/ac86l5sDn8+v6h+ZQaf9twd+lD2BvgPH5/ISfPgCT/ikb7n3XOe/O8Pn8uv50DtX23xb8Q3OodAOQXn8+nx/y0wdg0l/S3l//vH5xcx07Bz6fX9dfeg697b8t+NM5VLsBSK8/n88P+ekDcMv+9RGbMp/P51/CT+9/PfhLz6G3G4D0+vP5/Jy/6QMw4Q/m+Pd8Pp+/hp/e//h93QBsef35fP49e8DWDsBL+uN3V+4ax+fz+Uv7p8yTn/F7uwHY2vrz+fzj/a4OwIQ/9r59fv/LNTcfPp/P38L+xz/92qqfXn8+n7+s3/wBuKY/fb5D5tzF5/P5Pe9//Ho3AK2vP5/Pv5zf1AHYgn+sx+fz+Uv76f2vsl/xBqCl9efz+ev6zR2ALfhfP/x1e81508dMn+fN8yf8Tv0lPv96/vj5/X/+9bz/Jv1qNwCtrT+fz1/Pb/IATPuP/3j04///vt/8OudPH8Pfjr/EF2DPHz8/66f3v+r+El//vdwAtLj+fD5/Hb/JA3BNf/+4q8m7LfvnHK67/Oljxs/D5/P5re9//PbeAEj76fXn8/nr+PEDMO0Pcxg/96d3L2+vOX/uMfvnGmx+n/5Dri18/Pz1/PT+V91v8QZ8TT+9/nw+P3v/W/oAnpvDOdfwYg42n8/nn2pX2399A+YNMD6fn/EPTuKcq9cDmM/n8/k1/db+BXBtP73+fD4/68cnkPYfOof92N2BH+vG5/P5l7THc+Dz+Xw+/9Tzr/QBfN8c3j57enON/2z4X9iDzefz+b3uf5X99AGc9tPrz+fz8/e/pQ/g8RyOeTGGx43H8vl8fq/7X2U/fQCn/fT68/n8/P1v6QP40DzGP3N1WPCpy+fz+VvY/yr76QM47e+Kv/58fnX/t4lUO4Cnczjk3zVmPAc+n88/1668//oGzBtgfD4/d/9b+gA+Nz6fz9/C/lfZTx/AaX9X/PXn86v7Z5WeQNof5pCy+Xx+XT+9/23JTx/Aaf+c+Hx+Xf92ElUPYElKlt7/KvvpAzjt74q//nx+dV+SpJKlD+C0L0mSJEmSJEmSJEmSJEmStEbDz1Y23njjjV97vCRJkdIHoPHGG2+88cYbb7zxxhu/3vj4BNLj7/vZypd+Dj6fX9dP73/GG2+88cbXHB8/ANO+JKVK7398Pp/Pr+lLkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJWqSfrwEyXcs1MjkAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACQElEQVR4nO3bwUkDQRiG4ZSlCF4ED/bg1RK82kDwbB9agTfBBqwmssgsSVQ0u4t/xu95YECN2fc/zTiiqxUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAByT9d3NZsrS19fXB4AuVR+AVf32nOenh83b6+O4hs9f7m931lffM3cOfX393P7+HGn7r76+vr5+Ub89KPEAHt63/awp/fbxlBn09fVz+6vw/VdfX19fv6hffQB22b8+/Vj6+vr6afufvr6+vn73/T4PQH19fX19fX19fX19F4Aeb2D6+vr6Xe1/+vr6+vrd9/s8APX19fX19fX19fX1XQCm9odntDWl35a+vr7+of3q/U9fX19fP69/FAdgZb/NsE79L3B9ff2yfvX+p6+vr6+f2R+HSD2At2eY05/T1tfXz+1X73/6+vr6+pn9cYjUA3h7hmFdXV7srJ++vkRbX18/t1+9/+nr6+vrZ/bHIVIP4O0ZDukv2dbX18/tV+9/+vr6+vqZ/XGI1ANYX19fX19fX19fP61fPoC+vr6+vr6+vr6+vguAvr6+vr6+vr6+vr4LwPJ/g3t+dvJptf53r+nr6+svNUPq/quvr6+vX9SvPgD19fX19fX19fX19f/wF1DVA1T32wz76zev6evr689tJ++/+vr6+vp1P/9GH8AAlar3P319fX39/9V/B1i1FRo3PndhAAAAAElFTkSuQmCC);background-size:2304px 144px;--sheet:2304px;--frames:24;--dur:6s"></i><b>Ava</b><span id="ava-mood">Unwell</span></div>
+                <div class="case">
+                  <span class="k">How Ava is</span>
+                  <p>Ava is drowsy and her skin looks slightly yellow. Her blood level of the drug is three times higher than expected, and her liver enzymes are raised.</p>
+                  <p class="obj">Learning objective: describe how pharmacokinetics relates to a drug's effects.</p>
+                  <div class="write">The drug is building up because her liver isn't clearing it…</div>
+                  <button class="go" id="ava-diagnose">Diagnose</button>
+                  <p class="cured">Cured. It was drug toxicity from reduced clearance.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <span class="kicker">Get started</span>
+        <h2 class="serif">Up and running in three steps.</h2>
+        <div class="steps">
+          <div class="step"><h3>Download and install</h3><p>One installer for Windows. No account, no sign-up.</p></div>
+          <div class="step"><h3>Connect a free AI key</h3><p>Nota shows you where to get one from Google Gemini, Groq or Cerebras, all free, and checks it for you. Connect more than one and each backs up the others.</p></div>
+          <div class="step"><h3>Drop in your lectures</h3><p>PDFs, Word files, notes and links. Nota reads them on your computer, and you can start asking.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="wrap privacy">
+        <div>
+          <span class="kicker">Privacy</span>
+          <h2 class="serif">Your library lives on your computer.</h2>
+          <p class="sub">Nota doesn't have accounts or a cloud copy of your files. Reading, search and memory all run locally.</p>
+        </div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Your files are read and indexed on your computer. They are never uploaded.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>To answer a question, only the few passages it needs go to the AI provider you chose, with your own key.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Your key is stored only on your computer, and only Nota itself can change it.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>No analytics and no tracking in the app.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="wrap">
+        <img src="nota-mark.svg" alt="Nota" />
+        <h2 class="serif">Get Nota for Windows.</h2>
+        <p class="sub" style="margin-inline:auto">Free. About 500 MB. Your study data stays on your computer.</p>
+        <p style="margin-top:28px"><a class="btn" id="download-link" data-download href="#download">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download Nota <span id="version"></span>
+        </a></p>
+        <div class="reqs"><span>Windows 10 / 11, 64-bit</span><span>8 GB RAM recommended</span><span>2 GB free disk space</span><span>Internet for AI answers</span></div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <span class="kicker">Questions</span>
+        <h2 class="serif">Good to know.</h2>
+        <div class="faq">
+          <details><summary>Is Nota really free?</summary><p>Yes. Nota is free, and the AI providers it uses, Google Gemini, Groq and Cerebras, all have free tiers that cover normal studying. You make a key with your own account, so there's no bill from us.</p></details>
+          <details><summary>Windows says “Windows protected your PC”. Is it safe?</summary><p>Windows shows this for new apps that haven't built up a download reputation yet. Click <b>More info</b>, then <b>Run anyway</b>. The installer only puts Nota in your user folder and doesn't need administrator rights.</p></details>
+          <details><summary>What files can I add?</summary><p>PDFs (slides exported as PDF work well), Word documents (.docx), EPUB books, Markdown and plain text, web pages by link, and notes you paste in. Scanned PDFs with no text layer need the free Tesseract OCR installed.</p></details>
+          <details><summary>Does it work offline?</summary><p>Your library, reading, search and calendar all work offline. Answers, quizzes and skims need the internet, because they use the AI provider.</p></details>
+          <details><summary>Mac or Linux?</summary><p>Nota is Windows-only for now.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="brand"><img src="nota-mark.svg" alt="" style="width:22px;height:22px" />Nota</span>
+      <span>Study your own lectures.</span>
+      <span style="margin-left:auto">© <span id="year">2026</span> Nota</span>
+    </div>
+  </footer>
+
+  <script>
+    /*
+     * The download: always the newest release. Every release uploads the
+     * installer a second time as Nota-Setup.exe, so this link never changes.
+     * The version shown is read from GitHub, so it stays current too.
+     */
+    const REPO = 'aaronsu0105/nota';
+    const DOWNLOAD_URL = `https://github.com/${REPO}/releases/latest/download/Nota-Setup.exe`;
+    document.getElementById('download-link').href = DOWNLOAD_URL;
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((release) => {
+        if (release?.tag_name) document.getElementById('version').textContent = release.tag_name.replace(/^v/, '');
+      })
+      .catch(() => {});
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // The nav gets a hairline once the page scrolls under it.
+    const nav = document.getElementById('nav');
+    addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+    // Light or dark: follows the system until chosen.
+    const root = document.documentElement;
+    let stored = null;
+    try { stored = localStorage.getItem('nota-site-theme'); } catch {}
+    if (stored) root.dataset.theme = stored;
+    document.getElementById('theme').addEventListener('click', () => {
+      const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      root.dataset.theme = dark ? 'light' : 'dark';
+      try { localStorage.setItem('nota-site-theme', root.dataset.theme); } catch {}
+    });
+
+    // The quiz card: green and a flash for right, red for wrong, and why.
+    const quiz = document.getElementById('demo-quiz');
+    const verdict = document.getElementById('verdict');
+    const again = document.getElementById('again');
+    const WHY = 'An oral dose passes through the liver before it reaches the circulation, and the liver metabolises part of it. Less reaches the blood, so oral bioavailability goes down.';
+    quiz.addEventListener('click', (event) => {
+      const option = event.target.closest('.opt');
+      if (!option || quiz.dataset.done) return;
+      quiz.dataset.done = '1';
+      const right = quiz.querySelector('.opt[data-right="true"]');
+      right.classList.add('right', 'flash');
+      if (option !== right) option.classList.add('wrong', 'flash');
+      const correct = option === right;
+      verdict.className = `verdict show ${correct ? 'good' : 'bad'}`;
+      verdict.innerHTML = correct
+        ? `<b>✓ Correct.</b> ${WHY}`
+        : `<b>Not quite. The answer is B.</b> ${WHY} <br /><i>This one will come back in a few questions.</i>`;
+      again.style.display = 'inline';
+    });
+    again.addEventListener('click', () => {
+      delete quiz.dataset.done;
+      quiz.querySelectorAll('.opt').forEach((o) => o.classList.remove('right', 'wrong', 'flash'));
+      verdict.className = 'verdict';
+      again.style.display = 'none';
+    });
+
+    // A slide, drawn from a title, bullets and the one to highlight.
+    const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const drawSlide = (slide) => `<span class="deck">${esc(slide.deck)}</span><h4>${esc(slide.title)}</h4><ul>${slide.bullets
+      .map((b, i) => `<li>${i === slide.hl ? `<span class="hl">${esc(b)}</span>` : esc(b)}</li>`)
+      .join('')}</ul><div class="foot"><span>${esc(slide.course)}</span><span>${slide.page}</span></div>`;
+
+    // Answers with sources: each number opens its slide.
+    const SOURCES = {
+      1: { name: 'Cell Injury and Cell Death', page: 94, slide: { deck: 'Types of necrosis', title: 'Caseous necrosis', bullets: ['Dead tissue looks cheese-like', 'Soft and crumbly to the touch', 'The typical pattern in tuberculosis'], hl: 0, course: 'Pathology · Lecture 3', page: 94 } },
+      2: { name: 'Cell Injury and Cell Death', page: 95, slide: { deck: 'Types of necrosis', title: 'Caseous necrosis under the microscope', bullets: ['Pink, grainy centre with no cell outlines', 'Ringed by immune cells: a granuloma', 'Seen with tuberculosis and some fungi'], hl: 1, course: 'Pathology · Lecture 3', page: 95 } },
+    };
+    const cited = document.getElementById('cited');
+    const showSource = (n) => {
+      const source = SOURCES[n];
+      document.querySelectorAll('#demo-answer button.cite').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cite === String(n))));
+      cited.innerHTML = `<div class="meta"><span><b>${esc(source.name)}</b> · p. ${source.page}</span><span>Source ${n}</span></div><div class="slide">${drawSlide(source.slide)}</div>`;
+    };
+    document.getElementById('demo-answer').addEventListener('click', (event) => {
+      const button = event.target.closest('button.cite');
+      if (button) showSource(button.dataset.cite);
+    });
+    showSource(1);
+
+    // Flashcards: turn, rate, and see the slide each card came from.
+    const CARDS = [
+      { term: 'Caseous necrosis', meaning: 'A kind of cell death where the dead tissue turns soft and crumbly, like cottage cheese. It is the typical sign of tuberculosis.', page: 94, slide: SOURCES[1].slide },
+      { term: 'Coagulative necrosis', meaning: 'A kind of cell death where the tissue keeps its shape, like a ghost outline of itself. It usually happens when blood supply is cut off, as in a heart attack.', page: 90, slide: { deck: 'Types of necrosis', title: 'Coagulative necrosis', bullets: ['The most common type', 'Tissue keeps its outline; cells lose their nuclei', 'Typical after blood supply is lost (heart, kidney)'], hl: 1, course: 'Pathology · Lecture 3', page: 90 } },
+      { term: 'Steatosis', meaning: 'A buildup of fat inside liver cells. Alcohol, diabetes, obesity and poor diet are common causes.', page: 61, slide: { deck: 'Build-ups inside cells', title: 'Fatty change of the liver', bullets: ['Steatosis: fat collects inside liver cells', 'Causes: alcohol, diabetes, obesity, poor diet', 'Often reversible when the cause stops'], hl: 0, course: 'Pathology · Lecture 3', page: 61 } },
+      { term: 'Atrophy', meaning: 'When a tissue or organ shrinks because its cells get smaller, for example a muscle that goes unused.', page: 23, slide: { deck: 'How cells adapt', title: 'Atrophy', bullets: ['Tissue shrinks as its cells get smaller', 'Causes: less use, less blood, less nerve supply', 'Example: a leg muscle after weeks in a cast'], hl: 0, course: 'Pathology · Lecture 3', page: 23 } },
+    ];
+    const flash = document.getElementById('demo-flash');
+    const fcard = document.getElementById('fcard');
+    const fsource = document.getElementById('fsource');
+    let queue = [];
+    let turned = false;
+    let tally = { easy: 0, hard: 0 };
+    const drawCard = () => {
+      const card = queue[0];
+      flash.classList.toggle('finished', !card);
+      document.getElementById('flash-left').textContent = `${queue.length} left`;
+      if (!card) {
+        document.getElementById('flash-summary').textContent = `Deck done: ${tally.easy} easy, ${tally.hard} hard. In the app, hard cards come back in ten minutes and easy ones in a few days.`;
+        return;
+      }
+      fcard.innerHTML = `<span class="term">${esc(card.term)}</span>${turned ? `<span class="rule"></span><span class="meaning">${esc(card.meaning)}</span>` : '<span class="hint">Click or press Space to turn</span>'}`;
+      fsource.classList.toggle('hidden', !turned);
+      document.getElementById('fsource-name').textContent = 'Cell Injury and Cell Death';
+      document.getElementById('fsource-page').textContent = `p. ${card.page}`;
+      document.getElementById('fslide').innerHTML = drawSlide(card.slide);
+      document.getElementById('next-label').textContent = turned ? 'Next' : 'Show';
+    };
+    const start = () => {
+      queue = [...CARDS];
+      turned = false;
+      tally = { easy: 0, hard: 0 };
+      drawCard();
+    };
+    const turnOrNext = () => {
+      if (!queue.length) return;
+      if (!turned) turned = true;
+      else { queue.push(queue.shift()); turned = false; }
+      drawCard();
+    };
+    const rate = (how) => {
+      if (!queue.length) return;
+      const card = queue.shift();
+      tally[how] += 1;
+      // A hard card comes back two cards later, as in the app.
+      if (how === 'hard') queue.splice(Math.min(2, queue.length), 0, card);
+      turned = false;
+      drawCard();
+    };
+    fcard.addEventListener('click', () => { flash.focus({ preventScroll: true }); turnOrNext(); });
+    document.getElementById('rate-next').addEventListener('click', turnOrNext);
+    document.getElementById('rate-hard').addEventListener('click', () => rate('hard'));
+    document.getElementById('rate-easy').addEventListener('click', () => rate('easy'));
+    document.getElementById('flash-again').addEventListener('click', start);
+    // Keys only while the demo is selected, so Space still scrolls the page elsewhere.
+    flash.addEventListener('keydown', (event) => {
+      if (event.target.closest('button') && event.target !== fcard && event.code === 'Space') return;
+      if (event.code === 'Space') { event.preventDefault(); turnOrNext(); }
+      else if (event.key === '1') rate('hard');
+      else if (event.key === '2') rate('easy');
+    });
+    start();
+
+    // Bionic reading: bold the start of each word; the text is unchanged.
+    const text = document.getElementById('bionic-text');
+    const plain = text.textContent;
+    const fix = (n) => (n <= 3 ? 1 : n === 4 ? 2 : Math.max(2, Math.round(n * 0.4)));
+    const bionic = plain.replace(/\p{L}+/gu, (w) => `<b>${w.slice(0, fix(w.length))}</b>${w.slice(fix(w.length))}`);
+    const toggle = document.getElementById('bionic');
+    toggle.addEventListener('click', () => {
+      const on = toggle.getAttribute('aria-checked') !== 'true';
+      toggle.setAttribute('aria-checked', String(on));
+      if (on) text.innerHTML = bionic; else text.textContent = plain;
+    });
+  
+    // Study buddies: the same app, focused or with buddies; the diagnosis cures Ava.
+    (() => {
+      const demo = document.getElementById('demo-buddies');
+      if (!demo) return;
+      const focus = document.getElementById('mode-focus');
+      const buddies = document.getElementById('mode-buddies');
+      const body = document.getElementById('ava-body');
+      const headEl = document.getElementById('ava-head');
+      const mood = document.getElementById('ava-mood');
+      const looks = { unwell: ["width:96px;height:144px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEc0lEQVR4nO3csW4TSRzHcb8N0hU8DDT3AjQ8AgXSieuQaECiCTUtEjTX06ekvyegOV0JcqSNlsWb2M56fzP7/3ylFQg8/kzGyczGiOx2kiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJXXX1958/xhefz+dLkrTp0gdgwh97119e/XKtMRc+n1/Xn5tLlf23Jb966fXn8/kr++kDMOXPmXPX0vPg8/l1/ek8qu2/rfhzc6lyA5Befz6fH/DTB2DSH7v/Xn+8uebc6d8tMQc+n1/X3xXff1vwp/OodgOQXn8+nx/y0wdg0p/ac86l5sDn8+v6h+ZQaf9twd+lD2BvgPH5/ISfPgCT/ikb7n3XOe/O8Pn8uv50DtX23xb8Q3OodAOQXn8+nx/y0wdg0l/S3l//vH5xcx07Bz6fX9dfeg697b8t+NM5VLsBSK8/n88P+ekDcMv+9RGbMp/P51/CT+9/PfhLz6G3G4D0+vP5/Jy/6QMw4Q/m+Pd8Pp+/hp/e//h93QBsef35fP49e8DWDsBL+uN3V+4ax+fz+Uv7p8yTn/F7uwHY2vrz+fzj/a4OwIQ/9r59fv/LNTcfPp/P38L+xz/92qqfXn8+n7+s3/wBuKY/fb5D5tzF5/P5Pe9//Ho3AK2vP5/Pv5zf1AHYgn+sx+fz+Uv76f2vsl/xBqCl9efz+ev6zR2ALfhfP/x1e81508dMn+fN8yf8Tv0lPv96/vj5/X/+9bz/Jv1qNwCtrT+fz1/Pb/IATPuP/3j04///vt/8OudPH8Pfjr/EF2DPHz8/66f3v+r+El//vdwAtLj+fD5/Hb/JA3BNf/+4q8m7LfvnHK67/Oljxs/D5/P5re9//PbeAEj76fXn8/nr+PEDMO0Pcxg/96d3L2+vOX/uMfvnGmx+n/5Dri18/Pz1/PT+V91v8QZ8TT+9/nw+P3v/W/oAnpvDOdfwYg42n8/nn2pX2399A+YNMD6fn/EPTuKcq9cDmM/n8/k1/db+BXBtP73+fD4/68cnkPYfOof92N2BH+vG5/P5l7THc+Dz+Xw+/9Tzr/QBfN8c3j57enON/2z4X9iDzefz+b3uf5X99AGc9tPrz+fz8/e/pQ/g8RyOeTGGx43H8vl8fq/7X2U/fQCn/fT68/n8/P1v6QP40DzGP3N1WPCpy+fz+VvY/yr76QM47e+Kv/58fnX/t4lUO4Cnczjk3zVmPAc+n88/1668//oGzBtgfD4/d/9b+gA+Nz6fz9/C/lfZTx/AaX9X/PXn86v7Z5WeQNof5pCy+Xx+XT+9/23JTx/Aaf+c+Hx+Xf92ElUPYElKlt7/KvvpAzjt74q//nx+dV+SpJKlD+C0L0mSJEmSJEmSJEmSJEmStEbDz1Y23njjjV97vCRJkdIHoPHGG2+88cYbb7zxxhu/3vj4BNLj7/vZypd+Dj6fX9dP73/GG2+88cbXHB8/ANO+JKVK7398Pp/Pr+lLkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJWqSfrwEyXcs1MjkAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACQElEQVR4nO3bwUkDQRiG4ZSlCF4ED/bg1RK82kDwbB9agTfBBqwmssgsSVQ0u4t/xu95YECN2fc/zTiiqxUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAByT9d3NZsrS19fXB4AuVR+AVf32nOenh83b6+O4hs9f7m931lffM3cOfX393P7+HGn7r76+vr5+Ub89KPEAHt63/awp/fbxlBn09fVz+6vw/VdfX19fv6hffQB22b8+/Vj6+vr6afufvr6+vn73/T4PQH19fX19fX19fX19F4Aeb2D6+vr6Xe1/+vr6+vrd9/s8APX19fX19fX19fX1XQCm9odntDWl35a+vr7+of3q/U9fX19fP69/FAdgZb/NsE79L3B9ff2yfvX+p6+vr6+f2R+HSD2At2eY05/T1tfXz+1X73/6+vr6+pn9cYjUA3h7hmFdXV7srJ++vkRbX18/t1+9/+nr6+vrZ/bHIVIP4O0ZDukv2dbX18/tV+9/+vr6+vqZ/XGI1ANYX19fX19fX19fP61fPoC+vr6+vr6+vr6+vguAvr6+vr6+vr6+vr4LwPJ/g3t+dvJptf53r+nr6+svNUPq/quvr6+vX9SvPgD19fX19fX19fX19f/wF1DVA1T32wz76zev6evr689tJ++/+vr6+vp1P/9GH8AAlar3P319fX39/9V/B1i1FRo3PndhAAAAAElFTkSuQmCC);background-size:2304px 144px;--sheet:2304px;--frames:24;--dur:6s", "width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEc0lEQVR4nO3csW4TSRzHcb8N0hU8DDT3AjQ8AgXSieuQaECiCTUtEjTX06ekvyegOV0JcqSNlsWb2M56fzP7/3ylFQg8/kzGyczGiOx2kiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJXXX1958/xhefz+dLkrTp0gdgwh97119e/XKtMRc+n1/Xn5tLlf23Jb966fXn8/kr++kDMOXPmXPX0vPg8/l1/ek8qu2/rfhzc6lyA5Befz6fH/DTB2DSH7v/Xn+8uebc6d8tMQc+n1/X3xXff1vwp/OodgOQXn8+nx/y0wdg0p/ac86l5sDn8+v6h+ZQaf9twd+lD2BvgPH5/ISfPgCT/ikb7n3XOe/O8Pn8uv50DtX23xb8Q3OodAOQXn8+nx/y0wdg0l/S3l//vH5xcx07Bz6fX9dfeg697b8t+NM5VLsBSK8/n88P+ekDcMv+9RGbMp/P51/CT+9/PfhLz6G3G4D0+vP5/Jy/6QMw4Q/m+Pd8Pp+/hp/e//h93QBsef35fP49e8DWDsBL+uN3V+4ax+fz+Uv7p8yTn/F7uwHY2vrz+fzj/a4OwIQ/9r59fv/LNTcfPp/P38L+xz/92qqfXn8+n7+s3/wBuKY/fb5D5tzF5/P5Pe9//Ho3AK2vP5/Pv5zf1AHYgn+sx+fz+Uv76f2vsl/xBqCl9efz+ev6zR2ALfhfP/x1e81508dMn+fN8yf8Tv0lPv96/vj5/X/+9bz/Jv1qNwCtrT+fz1/Pb/IATPuP/3j04///vt/8OudPH8Pfjr/EF2DPHz8/66f3v+r+El//vdwAtLj+fD5/Hb/JA3BNf/+4q8m7LfvnHK67/Oljxs/D5/P5re9//PbeAEj76fXn8/nr+PEDMO0Pcxg/96d3L2+vOX/uMfvnGmx+n/5Dri18/Pz1/PT+V91v8QZ8TT+9/nw+P3v/W/oAnpvDOdfwYg42n8/nn2pX2399A+YNMD6fn/EPTuKcq9cDmM/n8/k1/db+BXBtP73+fD4/68cnkPYfOof92N2BH+vG5/P5l7THc+Dz+Xw+/9Tzr/QBfN8c3j57enON/2z4X9iDzefz+b3uf5X99AGc9tPrz+fz8/e/pQ/g8RyOeTGGx43H8vl8fq/7X2U/fQCn/fT68/n8/P1v6QP40DzGP3N1WPCpy+fz+VvY/yr76QM47e+Kv/58fnX/t4lUO4Cnczjk3zVmPAc+n88/1668//oGzBtgfD4/d/9b+gA+Nz6fz9/C/lfZTx/AaX9X/PXn86v7Z5WeQNof5pCy+Xx+XT+9/23JTx/Aaf+c+Hx+Xf92ElUPYElKlt7/KvvpAzjt74q//nx+dV+SpJKlD+C0L0mSJEmSJEmSJEmSJEmStEbDz1Y23njjjV97vCRJkdIHoPHGG2+88cYbb7zxxhu/3vj4BNLj7/vZypd+Dj6fX9dP73/GG2+88cbXHB8/ANO+JKVK7398Pp/Pr+lLkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJWqSfrwEyXcs1MjkAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACQElEQVR4nO3bwUkDQRiG4ZSlCF4ED/bg1RK82kDwbB9agTfBBqwmssgsSVQ0u4t/xu95YECN2fc/zTiiqxUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAByT9d3NZsrS19fXB4AuVR+AVf32nOenh83b6+O4hs9f7m931lffM3cOfX393P7+HGn7r76+vr5+Ub89KPEAHt63/awp/fbxlBn09fVz+6vw/VdfX19fv6hffQB22b8+/Vj6+vr6afufvr6+vn73/T4PQH19fX19fX19fX19F4Aeb2D6+vr6Xe1/+vr6+vrd9/s8APX19fX19fX19fX1XQCm9odntDWl35a+vr7+of3q/U9fX19fP69/FAdgZb/NsE79L3B9ff2yfvX+p6+vr6+f2R+HSD2At2eY05/T1tfXz+1X73/6+vr6+pn9cYjUA3h7hmFdXV7srJ++vkRbX18/t1+9/+nr6+vrZ/bHIVIP4O0ZDukv2dbX18/tV+9/+vr6+vqZ/XGI1ANYX19fX19fX19fP61fPoC+vr6+vr6+vr6+vguAvr6+vr6+vr6+vr4LwPJ/g3t+dvJptf53r+nr6+svNUPq/quvr6+vX9SvPgD19fX19fX19fX19f/wF1DVA1T32wz76zev6evr689tJ++/+vr6+vp1P/9GH8AAlar3P319fX39/9V/B1i1FRo3PndhAAAAAElFTkSuQmCC);background-size:768px 48px;--sheet:768px;--frames:24;--dur:6s"], healing: ["width:96px;height:144px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAwCAYAAABHTnUeAAAAq0lEQVR4nO3aMZFCURBEUdRjYwNMYAEDK4CQFAGLBQLYW9DnGOiq338meXM4AAAAADzj+nP8W86/nU9p/v33kubn6gIYNz+BAAAAAADAvPq9pM6H/Gyhzq9f7eeXwLMF1B+qzudNPqHYekvW+bZ0rC6AcfMTCAAAAAAAAMAXqe9w6vz6DGX+CqEugHHzE/gP6i1f59dLbv4frwtg3PwEAgAAAAAAAAAAALzSA1aocNN8f0WEAAAAAElFTkSuQmCC),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAwCAYAAABHTnUeAAAB30lEQVR4nO2ZMU7DQBBFfRskCg4DDReg4QSIFhqEFAkhUdFR0FLQUHMAt9RcBGTDkvHGa6+tNZPxvCeNFCW7fj/Wj6M4VQUAAAAAAAAAAAAJHq9Pv+Tg9+VXR+MESF/9etWZ/8iCX9efDLP2AqacqSmdA7+ufyeIpwJK72f93E7KG79WIgN+Xf9fCI8FjN0pz1IZ8Ov6e0N4KeCUD3zuBWFKFvy6/p0QngpY0t3M2+1lO7kZ8Ov6i4eggFt/nXFRwK/rp4CF/cEpH+PfXz8FnPGDf+xGAX47fgo44pe+j5e7zqTy4Lfjp4DR2nhiZ2rw2/RTwGhtrg//OvwUcCH/5vwYvwE/BUz4jw4PRp1yDX6bfvcFbNbF33bhuEMZ+tbI4+C34XdfwJBh7gc/nuZYwY3fgJ8CigxPNz8z1fu7L5zL4MZvxE8By5wD/Hb97guYynB/dpL1XLO36rmtjN+InwIOZ5ATnn9/uGgnuPEb91PAbYacC0JYJ/fiN+6ngLs5wvuU7zf24l+RnwJ2M/T5h/bEt4TxG/VTwHngX5GfAs7PoOXGr+yngOAeCggAAAAAAPtM+G+D/T73q6N9Atjve796AO39Y/9tLH0M/Lp+9wUE51BAAAAAAAAAAAAAsM83S/KETEzdqcsAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAwCAYAAABHTnUeAAABI0lEQVR4nO3YQUrDQBSA4RxLEbopuPAObnuEbr2AdN172BO4E7yAp2kJMmlCWmymwZdkvg8GrLH5H+HVRasKAAAAAAAAAAAAAAAAAAAAAAAAAAAAmJ73t80x5+gvox8u6gGk+3we9sef74/m1K+/dtvOufQ3986hH9vvDVLSAtbva98rp59+zplBP7bfDGEBB/RfH3+P/uz7FlC/6H74ALPsR/8D0B+tbwH1i+6HDzCFfn2PdHL66ejPr1/8AlbBXwLoB/ctYPc55PbvaesH9y1g9zm8PK8756/fj9HWD+5bwPMMQ/pjtvWD+xZQv/R++AD6+j4A+vo+AP/fr++3enrondS/dk1/Gf1mCAuoX2I/fIDoftX6IqB9brmmv4C+BWSpTolErNwGLV2JAAAAAElFTkSuQmCC);background-size:576px 144px;--sheet:576px;--frames:6;--dur:1.5s", "width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAwCAYAAABHTnUeAAAAq0lEQVR4nO3aMZFCURBEUdRjYwNMYAEDK4CQFAGLBQLYW9DnGOiq338meXM4AAAAADzj+nP8W86/nU9p/v33kubn6gIYNz+BAAAAAADAvPq9pM6H/Gyhzq9f7eeXwLMF1B+qzudNPqHYekvW+bZ0rC6AcfMTCAAAAAAAAMAXqe9w6vz6DGX+CqEugHHzE/gP6i1f59dLbv4frwtg3PwEAgAAAAAAAAAAALzSA1aocNN8f0WEAAAAAElFTkSuQmCC),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAwCAYAAABHTnUeAAAB30lEQVR4nO2ZMU7DQBBFfRskCg4DDReg4QSIFhqEFAkhUdFR0FLQUHMAt9RcBGTDkvHGa6+tNZPxvCeNFCW7fj/Wj6M4VQUAAAAAAAAAAAAJHq9Pv+Tg9+VXR+MESF/9etWZ/8iCX9efDLP2AqacqSmdA7+ufyeIpwJK72f93E7KG79WIgN+Xf9fCI8FjN0pz1IZ8Ov6e0N4KeCUD3zuBWFKFvy6/p0QngpY0t3M2+1lO7kZ8Ov6i4eggFt/nXFRwK/rp4CF/cEpH+PfXz8FnPGDf+xGAX47fgo44pe+j5e7zqTy4Lfjp4DR2nhiZ2rw2/RTwGhtrg//OvwUcCH/5vwYvwE/BUz4jw4PRp1yDX6bfvcFbNbF33bhuEMZ+tbI4+C34XdfwJBh7gc/nuZYwY3fgJ8CigxPNz8z1fu7L5zL4MZvxE8By5wD/Hb97guYynB/dpL1XLO36rmtjN+InwIOZ5ATnn9/uGgnuPEb91PAbYacC0JYJ/fiN+6ngLs5wvuU7zf24l+RnwJ2M/T5h/bEt4TxG/VTwHngX5GfAs7PoOXGr+yngOAeCggAAAAAAPtM+G+D/T73q6N9Atjve796AO39Y/9tLH0M/Lp+9wUE51BAAAAAAAAAAAAAsM83S/KETEzdqcsAAAAASUVORK5CYII=),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAwCAYAAABHTnUeAAABI0lEQVR4nO3YQUrDQBSA4RxLEbopuPAObnuEbr2AdN172BO4E7yAp2kJMmlCWmymwZdkvg8GrLH5H+HVRasKAAAAAAAAAAAAAAAAAAAAAAAAAAAAmJ73t80x5+gvox8u6gGk+3we9sef74/m1K+/dtvOufQ3986hH9vvDVLSAtbva98rp59+zplBP7bfDGEBB/RfH3+P/uz7FlC/6H74ALPsR/8D0B+tbwH1i+6HDzCFfn2PdHL66ejPr1/8AlbBXwLoB/ctYPc55PbvaesH9y1g9zm8PK8756/fj9HWD+5bwPMMQ/pjtvWD+xZQv/R++AD6+j4A+vo+AP/fr++3enrondS/dk1/Gf1mCAuoX2I/fIDoftX6IqB9brmmv4C+BWSpTolErNwGLV2JAAAAAElFTkSuQmCC);background-size:192px 48px;--sheet:192px;--frames:6;--dur:1.5s"], healthy: ["width:96px;height:144px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEV0lEQVR4nO3dsY7cVBiGYd8NEgUXAw03QJOWjhYkCqQ0abdKQ0dFQ8sNTE3LFdAgykSzxOBY49ndiWc+e77nlSwisWees+j8x1qtRIZBkiRJkiRJkiRJkiRJkiRJkiRJkiRJktbo4Yev300fPl9SR+n553f7UnWJAZx6h1+//+i5xV743f7SXhpfgHy++5/f5C/tpWX++OV+agCXzKVn7X3wu/35PlpfgHy++5/f5s/30TZ//HI/OYBT98/Dz4/Pkjv/d2vsgd/tDxt4AfH5rX56/vnd/lA+f/xyPzmAc3vJudYe+N3+qT20vQD5/JSfnn9+t39qD03zxy/3kwP4kp94nnoeLvj1CL/bn++h8QXI56f89Pzzu/35Htrmj1/uJwdwTfv4/PbTd4/Pc/fA7/bX3sMeX4B8fspPzz+/2197D3ubP365nx7Aa/qHZ/xUxOff6/nn85v9Q/n9w3f/8/mxDRwCAzia0z/z+bfy0+efz2/2D+X3D9/9z+c/19/VAD5Mfr1xbh2ffw0/ff75/GY/Pf/8bj99/vn8tf3ND+DU++OX1x89S/vh868xgOkXEJ/f5qfnn9/tp88/n39Nf1MDOP+8U+bSw+dfYwDTLyA+v8VPzz+/20+ffz7/1v6mBvAlHp9/by8gPr/dT88/v9tPn38+/5b+5gbw+FlffP7Zu3/+/uvxn0ve/Gvmn/P61Zd8/u5eQHx+u5+ef363nz7/fP6t/E0O4PEzx+ecP/0aPv9eXkB8frufnn9+t58+/3v/AWjP33+THx/A49c9zH7dcYk/7mH8HD5/zy8gPr/BT88/v9tPn/8t+pc89/T9N/nxARz3cOnBmz/HzxptPn/rLyA+v9kfyu8fvvufz0/ev/EL4L89vP3x3+el7od143/M0ebzt/4C4vPb/aH8/uG7//n8lP//JtIXwArfPJ+/txcQn8/fwPzzu/30+efzQ358AM/t4c03X53889weTvx/Vfn8T7Fvdf75/Gb/3B4a7h+++5/PT/lnN3GrC+CpPczt3998+/iMNp+/1xcQn9/uP7WHe79/+O5/Pj95/8YvgHEPz/mJaPy66Vo+f68vID6/3R/K7x+++5/PT96/8Qtgvo/xG51+w3OXz1/LT59/Pr/Zn++j7f7hZ/30+efzt3D/xi+AcQ+n/HNrpnvg8z/FbnwB8vlb8Ify+4fv/ufzk/dv/AK4JD7/Hl5AfH67f0l8/r2cfz5/b/dvfgMf9pCy+d1++vzz+c3+UH7/8N3/fH7y/o1fAFKy9Pnn85t9KVn6/PP57l9JkiRJkiRJkiRJkiRJkiRJkrR6419uYL31ifWScqXn3/ru9VJ16QG03nrrrbfeeuutt95662+3Pr6Bp/5yg2t/Br/bT59/661vXp+ef363nz7/1lsf/QEgPYBSsvT55/ObfSlZ+vzz+UlfkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiS9rPe0CK27oQPZQwAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACfklEQVR4nO3bTUocQRzG4TqWQXATyCJ3cJsjuM0Fhqxzj3gCd4IX8DQTBunQYwyansbXnvd5oMDP+RVS9R964RgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPAGu+/f9kuWvj6wben7r9/dh2qpCzi9zt3tz/3jw68/6/D5/Y+bo/XSz5y6D/3u/vN9tL4B6uub//pt/ef7aLt/+uX95AU8/N78tZb0p4+X7EG/uz8+wBuQvn5rP33/9bv7o/z+6Zf30xdwUf/609PS19/4G5C+vv7G7r9+dz99/vX1V+pv8wLq6+vr6+vr6+vr6xc9AJzRE5j+Bvvp86+v39xP33/97n76/OvrRx8A0hdQX19fX19fX19fX3+7DwCH15jWkv609PWX9NPnX1+/uZ++//rd/fT519dP9eMXcNrDrvW/sPWj/fT519dv7o/y+aNv/uvrJ+dvfADM/xBL+6e09bv76fOvr9/cH+XzR9/819dPzt/4AJj/Ib5++Xy0Xvv6Gm397n76/OvrN/dH+fzRN//19ZPzNz4Apj38T3/Ntn53P33+9fWb+6N8/uib//r6yflbPQD09fX19fX19fX12/rxDejr6+vr6+vr6+vrewDQ19fX19fX19fX1z+3B4DD611dXvy1pv6/vqevv+YemgeAvr75r9/YH+X3T7+8n76A+vr6+vr6+vr6+vrv+AAc38DsP6Hn6y3f09dfo908APT1zX/91n76/Ovrp+dvfABAUvr86+s39yEpff719c1fAADgJL8BK/0VGuYxVI4AAAAASUVORK5CYII=);background-size:2304px 144px;--sheet:2304px;--frames:24;--dur:6s", "width:32px;height:48px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAApklEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAVwNATgABan329AAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAAEV0lEQVR4nO3dsY7cVBiGYd8NEgUXAw03QJOWjhYkCqQ0abdKQ0dFQ8sNTE3LFdAgykSzxOBY49ndiWc+e77nlSwisWees+j8x1qtRIZBkiRJkiRJkiRJkiRJkiRJkiRJkiRJktbo4Yev300fPl9SR+n553f7UnWJAZx6h1+//+i5xV743f7SXhpfgHy++5/f5C/tpWX++OV+agCXzKVn7X3wu/35PlpfgHy++5/f5s/30TZ//HI/OYBT98/Dz4/Pkjv/d2vsgd/tDxt4AfH5rX56/vnd/lA+f/xyPzmAc3vJudYe+N3+qT20vQD5/JSfnn9+t39qD03zxy/3kwP4kp94nnoeLvj1CL/bn++h8QXI56f89Pzzu/35Htrmj1/uJwdwTfv4/PbTd4/Pc/fA7/bX3sMeX4B8fspPzz+/2197D3ubP365nx7Aa/qHZ/xUxOff6/nn85v9Q/n9w3f/8/mxDRwCAzia0z/z+bfy0+efz2/2D+X3D9/9z+c/19/VAD5Mfr1xbh2ffw0/ff75/GY/Pf/8bj99/vn8tf3ND+DU++OX1x89S/vh868xgOkXEJ/f5qfnn9/tp88/n39Nf1MDOP+8U+bSw+dfYwDTLyA+v8VPzz+/20+ffz7/1v6mBvAlHp9/by8gPr/dT88/v9tPn38+/5b+5gbw+FlffP7Zu3/+/uvxn0ve/Gvmn/P61Zd8/u5eQHx+u5+ef363nz7/fP6t/E0O4PEzx+ecP/0aPv9eXkB8frufnn9+t58+/3v/AWjP33+THx/A49c9zH7dcYk/7mH8HD5/zy8gPr/BT88/v9tPn/8t+pc89/T9N/nxARz3cOnBmz/HzxptPn/rLyA+v9kfyu8fvvufz0/ev/EL4L89vP3x3+el7od143/M0ebzt/4C4vPb/aH8/uG7//n8lP//JtIXwArfPJ+/txcQn8/fwPzzu/30+efzQ358AM/t4c03X53889weTvx/Vfn8T7Fvdf75/Gb/3B4a7h+++5/PT/lnN3GrC+CpPczt3998+/iMNp+/1xcQn9/uP7WHe79/+O5/Pj95/8YvgHEPz/mJaPy66Vo+f68vID6/3R/K7x+++5/PT96/8Qtgvo/xG51+w3OXz1/LT59/Pr/Zn++j7f7hZ/30+efzt3D/xi+AcQ+n/HNrpnvg8z/FbnwB8vlb8Ify+4fv/ufzk/dv/AK4JD7/Hl5AfH67f0l8/r2cfz5/b/dvfgMf9pCy+d1++vzz+c3+UH7/8N3/fH7y/o1fAFKy9Pnn85t9KVn6/PP57l9JkiRJkiRJkiRJkiRJkiRJkrR6419uYL31ifWScqXn3/ru9VJ16QG03nrrrbfeeuutt95662+3Pr6Bp/5yg2t/Br/bT59/661vXp+ef363nz7/1lsf/QEgPYBSsvT55/ObfSlZ+vzz+UlfkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiS9rPe0CK27oQPZQwAAAABJRU5ErkJggg==),url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAAAwCAYAAACmEx2+AAACfklEQVR4nO3bTUocQRzG4TqWQXATyCJ3cJsjuM0Fhqxzj3gCd4IX8DQTBunQYwyansbXnvd5oMDP+RVS9R964RgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPAGu+/f9kuWvj6wben7r9/dh2qpCzi9zt3tz/3jw68/6/D5/Y+bo/XSz5y6D/3u/vN9tL4B6uub//pt/ef7aLt/+uX95AU8/N78tZb0p4+X7EG/uz8+wBuQvn5rP33/9bv7o/z+6Zf30xdwUf/609PS19/4G5C+vv7G7r9+dz99/vX1V+pv8wLq6+vr6+vr6+vr6xc9AJzRE5j+Bvvp86+v39xP33/97n76/OvrRx8A0hdQX19fX19fX19fX3+7DwCH15jWkv609PWX9NPnX1+/uZ++//rd/fT519dP9eMXcNrDrvW/sPWj/fT519dv7o/y+aNv/uvrJ+dvfADM/xBL+6e09bv76fOvr9/cH+XzR9/819dPzt/4AJj/Ib5++Xy0Xvv6Gm397n76/OvrN/dH+fzRN//19ZPzNz4Apj38T3/Ntn53P33+9fWb+6N8/uib//r6yflbPQD09fX19fX19fX12/rxDejr6+vr6+vr6+vrewDQ19fX19fX19fX1z+3B4DD611dXvy1pv6/vqevv+YemgeAvr75r9/YH+X3T7+8n76A+vr6+vr6+vr6+vrv+AAc38DsP6Hn6y3f09dfo908APT1zX/91n76/Ovrp+dvfABAUvr86+s39yEpff719c1fAADgJL8BK/0VGuYxVI4AAAAASUVORK5CYII=);background-size:768px 48px;--sheet:768px;--frames:24;--dur:6s"] };
+      const show = (state, label) => { body.setAttribute('style', looks[state][0]); headEl.setAttribute('style', looks[state][1]); mood.textContent = label; };
+      const reset = () => { demo.classList.remove('healed'); demo.classList.add('sick'); headEl.parentElement.classList.add('sick'); show('unwell', 'Unwell'); };
+      const setMode = (on) => { demo.classList.toggle('on', on); focus.setAttribute('aria-pressed', String(!on)); buddies.setAttribute('aria-pressed', String(on)); if (on) reset(); };
+      focus.addEventListener('click', () => setMode(false));
+      buddies.addEventListener('click', () => setMode(true));
+      document.getElementById('ava-diagnose').addEventListener('click', () => {
+        demo.classList.add('healed'); demo.classList.remove('sick'); headEl.parentElement.classList.remove('sick');
+        show('healing', 'Getting better');
+        setTimeout(() => show('healthy', 'Healthy'), 1500);
+      });
+    })();
+  </script>
+</body>
+</html>
