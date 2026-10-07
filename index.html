@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nota — the study app that reads your lectures with you</title>
+  <meta name="description" content="Nota is a free desktop study app. Drop in your lecture slides and notes; ask questions and get answers that point to the exact page, skim objectives, quiz yourself, and plan your term. Your files stay on your computer." />
+  <meta property="og:title" content="Nota — study with your own lectures" />
+  <meta property="og:description" content="Answers that cite your slides, quizzes and flashcards that remember what you missed, and a calendar built from your syllabus. Free for Windows." />
+  <meta property="og:image" content="nota-512.png" />
+  <meta name="theme-color" content="#d95d39" />
+  <link rel="icon" type="image/svg+xml" href="nota-mark.svg" />
+  <link rel="apple-touch-icon" href="nota-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Caveat:wght@500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --surface: #fffdfa;
+      --tint: #f0ebe1;
+      --ink: #1c1c1e;
+      --muted: #5b5852;
+      --line: #e3ddd1;
+      --clay: #d95d39;
+      --clay-deep: #b5461f;
+      --clay-soft: #fbe9e1;
+      --moss: #3f6b52;
+      --moss-soft: #e5f0e9;
+      --red: #b3372f;
+      --red-soft: #f9e4e1;
+      --shadow: 0 1px 2px rgba(40, 30, 20, .04), 0 12px 40px -12px rgba(40, 30, 20, .14);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #151412; --surface: #1e1d1a; --tint: #2c2a26; --ink: #ece8e1; --muted: #aca69c;
+        --line: #373530; --clay: #e57654; --clay-deep: #f29676; --clay-soft: #3b261f;
+        --moss: #8fba9e; --moss-soft: #1e2d25; --red: #ef8a80; --red-soft: #3a211e;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px -16px rgba(0,0,0,.6);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #151412; --surface: #1e1d1a; --tint: #2c2a26; --ink: #ece8e1; --muted: #aca69c;
+      --line: #373530; --clay: #e57654; --clay-deep: #f29676; --clay-soft: #3b261f;
+      --moss: #8fba9e; --moss-soft: #1e2d25; --red: #ef8a80; --red-soft: #3a211e;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 48px -16px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.6 Geist, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+    .serif { font-family: Newsreader, Georgia, serif; font-weight: 400; letter-spacing: -.01em; }
+    .mono { font-family: "Geist Mono", ui-monospace, monospace; }
+
+    /* ------------------------------------------------------------- nav */
+    nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid transparent; }
+    nav.scrolled { border-color: var(--line); }
+    nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 500 22px/1 Newsreader, Georgia, serif; }
+    .brand img { width: 30px; height: 30px; }
+    nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--muted); }
+    nav .links a { text-decoration: none; }
+    nav .links a:hover { color: var(--ink); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; text-decoration: none;
+      background: var(--clay); color: #fff; font: 500 15px/1 Geist, system-ui, sans-serif;
+      padding: 13px 20px; border-radius: 12px; transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--clay) 70%, transparent);
+    }
+    :root[data-theme="dark"] .btn:not(.ghost) { color: #1a1310; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn:not(.ghost) { color: #1a1310; } }
+    .btn:hover { transform: translateY(-1px); background: var(--clay-deep); }
+    .btn.small { padding: 9px 14px; font-size: 14px; border-radius: 10px; }
+    .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+    .btn.ghost:hover { background: var(--tint); }
+    .theme { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; display: grid; place-items: center; }
+    .theme:hover { color: var(--ink); background: var(--tint); }
+
+    /* ------------------------------------------------------------ hero */
+    .hero { padding: 72px 0 40px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+    .eyebrow { display: inline-block; font-size: 13px; line-height: 1.5; color: var(--muted); border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; border-radius: 999px; }
+    .eyebrow b { color: var(--moss); font-weight: 600; }
+    h1 { font: 400 clamp(44px, 6vw, 72px)/1.02 Newsreader, Georgia, serif; letter-spacing: -.025em; margin: 20px 0 18px; }
+    h1 em { color: var(--clay); font-style: italic; }
+    .lede { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 30px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .fine { font-size: 13px; color: var(--muted); margin-top: 14px; }
+
+    /* The app, drawn: a window with a real-looking answer in it. */
+    .window { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; transform: rotate(.6deg); }
+    .window .bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+    .window .bar img { width: 18px; height: 18px; }
+    .window .bar .dots { margin-left: auto; display: flex; gap: 6px; }
+    .window .bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: block; }
+    .chat { padding: 20px; display: grid; gap: 14px; font-size: 14.5px; }
+    .q { justify-self: end; background: var(--tint); padding: 9px 14px; border-radius: 14px 14px 4px 14px; max-width: 80%; }
+    .a { line-height: 1.65; }
+    .cite { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin: 0 2px; border-radius: 999px; background: var(--clay); color: #fff; font: 500 11px/1 "Geist Mono", monospace; vertical-align: 1px; }
+    :root[data-theme="dark"] .cite { color: #1a1310; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cite { color: #1a1310; } }
+    .source { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-left: 3px solid var(--clay); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--muted); background: var(--bg); }
+    .source b { color: var(--ink); font-weight: 500; }
+
+    /* --------------------------------------------------------- sections */
+    section { padding: 72px 0; }
+    .kicker { font: 500 12px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--clay-deep); }
+    h2 { font: 400 clamp(32px, 4vw, 46px)/1.08 Newsreader, Georgia, serif; letter-spacing: -.02em; margin: 12px 0 14px; }
+    .sub { color: var(--muted); font-size: 18px; max-width: 38em; margin: 0; }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+    .card h3 { font: 500 17px/1.3 Geist, sans-serif; margin: 14px 0 6px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+    .icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--clay-soft); color: var(--clay-deep); }
+    .icon svg { width: 19px; height: 19px; }
+
+    /* The quiz, drawn — and clickable. */
+    .split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; }
+    .quiz { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); }
+    .quiz .head { display: flex; justify-content: space-between; font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .quiz .question { font-size: 16px; font-weight: 500; margin: 12px 0 14px; }
+    .opt { width: 100%; display: flex; gap: 12px; align-items: flex-start; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 11px 13px; margin-top: 8px; font: 14.5px/1.45 Geist, sans-serif; cursor: pointer; transition: border-color .15s, background .15s; }
+    .opt:hover { border-color: var(--clay); }
+    .opt .l { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); font: 500 12px/1 "Geist Mono", monospace; }
+    .opt.right { border-color: var(--moss); background: var(--moss-soft); }
+    .opt.right .l { background: var(--moss); color: var(--surface); }
+    .opt.wrong { border-color: var(--red); background: var(--red-soft); }
+    .opt.wrong .l { background: var(--red); color: var(--surface); }
+    .opt.flash { animation: flash .7s ease 2; }
+    @keyframes flash { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 18%, transparent); } }
+    .opt.right.flash { color: var(--moss); } .opt.right.flash span:last-child { color: var(--ink); }
+    .opt.wrong.flash { color: var(--red); } .opt.wrong.flash span:last-child { color: var(--ink); }
+    .verdict { display: none; margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+    .verdict.show { display: block; }
+    .verdict.good { background: var(--moss-soft); }
+    .verdict.bad { background: var(--red-soft); }
+    .again { margin-top: 10px; font-size: 13px; background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; padding: 0; display: none; }
+
+    .bionic-demo { margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+    .bionic-demo .toggle { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--line); border: 0; position: relative; cursor: pointer; transition: background .2s; }
+    .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .switch[aria-checked="true"] { background: var(--clay); }
+    .switch[aria-checked="true"]::after { transform: translateX(18px); }
+    .bionic-text { font-size: 16.5px; line-height: 1.75; margin: 0; }
+    .bionic-text b { font-weight: 700; }
+
+    /* A lecture slide, drawn: what a source looks like in the app. */
+    .slide { position: relative; aspect-ratio: 4 / 3; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 7% 8%; box-shadow: var(--shadow); overflow: hidden; }
+    .slide .deck { font: 500 10.5px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .slide h4 { font: 500 clamp(17px, 2vw, 21px)/1.2 Newsreader, Georgia, serif; margin: 10px 0 12px; color: var(--clay-deep); }
+    .slide ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.45; }
+    .slide li::marker { color: var(--clay); }
+    .slide .hl { background: color-mix(in srgb, var(--clay) 18%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--clay) 55%, transparent); border-radius: 4px; padding: 0 3px; }
+    .slide .foot { position: absolute; left: 8%; right: 8%; bottom: 5%; display: flex; justify-content: space-between; font: 500 10.5px/1 "Geist Mono", monospace; color: var(--muted); }
+
+    /* Answers with sources: click a number, see the page. */
+    .answer-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+    .answer-demo .a { font-size: 15px; }
+    .answer-demo button.cite { border: 0; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+    .answer-demo button.cite:hover { transform: translateY(-1px); }
+    .answer-demo button.cite[aria-pressed="true"] { box-shadow: 0 0 0 3px color-mix(in srgb, var(--clay) 30%, transparent); }
+    .cited { display: grid; gap: 8px; }
+    .cited .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); }
+    .cited .meta b { color: var(--ink); font-weight: 500; }
+    .cited .slide { animation: rise .25s ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+    /* Flashcards: the card, the slide it came from, and two buttons. */
+    .flash-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); outline: none; }
+    .flash-demo:focus-visible { box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--clay) 40%, transparent); }
+    .flash-demo .head { display: flex; justify-content: space-between; align-items: center; font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .flash-demo .body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px; padding: 20px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--ink); cursor: pointer; font: inherit; }
+    .fcard .term { font: 400 26px/1.2 Newsreader, Georgia, serif; }
+    .fcard .rule { width: 56px; height: 1px; background: var(--line); }
+    .fcard .meaning { font-size: 15px; line-height: 1.55; }
+    .fcard .hint { font-size: 12px; color: var(--muted); }
+    .fsource { display: grid; gap: 6px; align-content: start; }
+    .fsource .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .fsource .slide { transition: filter .25s ease; }
+    .fsource .slide ul { font-size: 12px; gap: 4px; }
+    .fsource .slide h4 { font-size: 16px; margin: 8px 0 8px; }
+    .fsource.hidden .slide { filter: blur(6px); }
+    .fsource .veil { display: none; font-size: 12px; color: var(--muted); text-align: center; }
+    .fsource.hidden .veil { display: block; }
+    .rate { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; margin-top: 12px; }
+    .rate button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 10px; font: 14px/1 Geist, sans-serif; cursor: pointer; }
+    .rate button:hover { border-color: var(--clay); }
+    .rate .hard { border-color: color-mix(in srgb, var(--red) 45%, transparent); background: var(--red-soft); }
+    .rate .easy { border-color: color-mix(in srgb, var(--moss) 45%, transparent); background: var(--moss-soft); }
+    .rate kbd { font: 500 11px/1 "Geist Mono", monospace; border: 1px solid currentColor; border-radius: 4px; padding: 1px 5px; margin-right: 6px; opacity: .7; }
+    .flash-done { display: none; text-align: center; padding: 28px 10px; }
+    .flash-done p { margin: 0 0 12px; color: var(--muted); }
+    .flash-demo.finished .body, .flash-demo.finished .rate { display: none; }
+    .flash-demo.finished .flash-done { display: block; }
+    .keys { margin-top: 10px; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+    /* The answer demo is a glance: compact, its slide only as tall as its text. */
+    #sources .answer-demo { width: 100%; max-width: 460px; justify-self: end; padding: 16px; gap: 12px; }
+    #sources .answer-demo .q, #sources .answer-demo .a { font-size: 14px; }
+    #sources .answer-demo .slide { aspect-ratio: auto; padding: 16px 20px; }
+    #sources .answer-demo .slide h4 { font-size: 17px; margin: 8px 0 10px; }
+    #sources .answer-demo .slide ul { font-size: 13px; gap: 5px; }
+    #sources .answer-demo .slide .foot { position: static; margin-top: 14px; }
+
+    /* The flashcard demo is the thing to try: full width under its heading. */
+    #flashcards .split { grid-template-columns: 1fr; gap: 28px; }
+    #flashcards .split > div:first-child { max-width: 760px; }
+    #flashcards .flash-demo { width: 100%; max-width: 1040px; padding: 26px; }
+    #flashcards .flash-demo .body { gap: 18px; }
+    #flashcards .fcard { min-height: 340px; padding: 28px; gap: 16px; }
+    #flashcards .fcard .term { font-size: 36px; }
+    #flashcards .fcard .meaning { font-size: 18px; max-width: 30em; }
+    #flashcards .fcard .hint { font-size: 13px; }
+    #flashcards .fsource .meta { font-size: 13px; }
+    #flashcards .fsource .slide h4 { font-size: 22px; margin: 10px 0 12px; }
+    #flashcards .fsource .slide ul { font-size: 15px; gap: 7px; }
+    #flashcards .rate { margin-top: 16px; gap: 10px; }
+    #flashcards .rate button { padding: 14px; font-size: 15px; }
+
+    /* ------------------------------------------------------------ steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; counter-reset: step; }
+    .step { border-top: 2px solid var(--line); padding-top: 18px; }
+    .step::before { counter-increment: step; content: "0" counter(step); font: 500 13px/1 "Geist Mono", monospace; color: var(--clay-deep); }
+    .step h3 { font: 500 18px/1.3 Geist, sans-serif; margin: 10px 0 6px; }
+    .step p { color: var(--muted); margin: 0; font-size: 15px; }
+
+    .privacy { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .privacy ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+    .privacy li { display: flex; gap: 12px; font-size: 15px; }
+    .privacy li svg { flex: none; width: 20px; height: 20px; color: var(--moss); margin-top: 2px; }
+
+    .download { text-align: center; padding: 88px 0; }
+    .download img { width: 84px; height: 84px; }
+    .reqs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 22px; font-size: 13.5px; color: var(--muted); }
+
+    details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+    details summary { cursor: pointer; font-weight: 500; font-size: 16.5px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    details summary::after { content: "+"; color: var(--muted); font-size: 20px; line-height: 1; }
+    details[open] summary::after { content: "–"; }
+    details p { color: var(--muted); margin: 10px 0 0; max-width: 46em; }
+    .faq { max-width: 780px; margin-top: 28px; }
+
+    footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 13.5px; color: var(--muted); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+    footer .brand { font-size: 18px; color: var(--ink); }
+
+    @media (max-width: 900px) {
+      .hero, .split, .privacy { grid-template-columns: 1fr; gap: 36px; }
+      .flash-demo .body { grid-template-columns: 1fr; }
+      #flashcards .flash-demo { padding: 16px; min-width: 0; }
+      #flashcards .flash-demo .body > * { min-width: 0; }
+      #flashcards .fcard { min-height: 240px; padding: 20px; }
+      #flashcards .fcard .term { font-size: 27px; overflow-wrap: anywhere; }
+      #flashcards .fcard .meaning { font-size: 16px; }
+      #flashcards .rate button { padding: 11px 8px; font-size: 14px; }
+      /* A narrow slide grows to fit its text rather than keep its shape. */
+      .slide { aspect-ratio: auto; }
+      .slide .foot { position: static; margin-top: 14px; }
+      .hero { padding-top: 40px; }
+      .features, .steps { grid-template-columns: 1fr; }
+      nav .links { display: none; }
+      nav .wrap { gap: 12px; }
+      nav .theme { margin-left: auto; }
+      .window { transform: none; }
+      .privacy { padding: 26px; }
+      section { padding: 52px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  
+    /* Exams: a few weeks of the calendar, the reminder, and the plan it makes. */
+
+    .ready-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 14px; }
+    .ready-demo .top { display: flex; gap: 14px; align-items: center; }
+    .ready-demo .ring { width: 76px; height: 76px; flex-shrink: 0; }
+    .ready-demo .ring circle { fill: none; stroke-width: 7; }
+    .ready-demo .ring .track { stroke: var(--line); }
+    .ready-demo .ring .fill { stroke: var(--moss); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 40px 40px; }
+    .ready-demo .ring text { fill: var(--ink); font: 500 17px/1 "Fraunces", Georgia, serif; text-anchor: middle; dominant-baseline: central; }
+    .ready-demo strong { display: block; font-size: 15px; }
+    .ready-demo .muted { color: var(--muted); font-weight: 400; }
+    .ready-demo .meta { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .ready-demo .risk { color: var(--clay-deep); font-weight: 600; }
+    .ready-demo .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .ready-demo .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .ready-demo .legend .t { width: 11px; height: 11px; }
+    .ready-demo .lect { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); display: grid; gap: 6px; font-size: 13.5px; }
+    .ready-demo .row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+    .ready-demo .row > span:first-child { width: 120px; flex-shrink: 0; }
+    .ready-demo .tiles { display: flex; gap: 5px; flex-wrap: wrap; }
+    .ready-demo .t { display: inline-block; width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid transparent; padding: 0; cursor: pointer; }
+    .ready-demo .t.ready { background: var(--moss); border-color: var(--moss); }
+    .ready-demo .t.getting { background: color-mix(in srgb, var(--moss) 40%, var(--surface)); border-color: color-mix(in srgb, var(--moss) 60%, var(--surface)); }
+    .ready-demo .t.shaky { background: var(--clay); border-color: var(--clay); }
+    .ready-demo .t.none { background: transparent; border-color: var(--muted); }
+    .ready-demo button.t[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+    .ready-demo .pick { margin: 0; font-size: 13px; color: var(--ink); min-height: 1.4em; }
+    .exam-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 14px; }
+    .exam-demo .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .exam-demo .cal .dow { font: 500 10.5px/1 "Geist Mono", monospace; color: var(--muted); text-align: center; padding-bottom: 2px; }
+    .exam-demo .cal .d { min-height: 46px; border-radius: 9px; background: var(--bg); border: 1px solid var(--line); padding: 4px 5px; font-size: 11.5px; color: var(--ink); display: flex; flex-direction: column; gap: 3px; }
+    .exam-demo .cal .d b { font-weight: 500; font-size: 11px; color: var(--muted); }
+    .exam-demo .cal .d.exam { border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 22%, var(--surface)); }
+    .exam-demo .cal .d.exam b { color: var(--ink); font-weight: 700; }
+    .exam-demo .cal .tag { font: 700 9.5px/1.3 Geist, sans-serif; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 1px 5px; align-self: flex-start; background: color-mix(in srgb, var(--c) 45%, var(--surface)); }
+    .exam-demo .cal .plan-step { font-size: 9.5px; line-height: 1.25; color: var(--muted); border-left: 2px solid var(--clay); padding-left: 3px; opacity: 0; transform: translateY(3px); transition: opacity .3s ease, transform .3s ease; }
+    .exam-demo.planned .cal .plan-step { opacity: 1; transform: none; }
+    .exam-demo .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+    .exam-demo .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    .exam-demo .remind { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; border-left: 4px solid var(--c); }
+    .exam-demo .remind strong { font-size: 14px; }
+    .exam-demo .remind .meta { font-size: 12px; color: var(--muted); }
+    .exam-demo .remind .stage { font-size: 12px; font-weight: 600; color: var(--clay-deep); }
+    .exam-demo .remind .in { font-size: 12px; border-radius: 999px; padding: 2px 8px; background: var(--tint); }
+    .exam-demo .plan-btn { grid-column: 1 / -1; justify-self: start; border: 0; border-radius: 999px; background: var(--ink); color: var(--surface); font: 500 13px/1 Geist, sans-serif; padding: 8px 14px; cursor: pointer; }
+    .exam-demo .plan-btn:hover { background: var(--clay); }
+    .exam-demo .plan-done { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); display: none; }
+    .exam-demo.planned .plan-done { display: block; }
+
+    /* A B+ tree, stepped through, and a union as tables. */
+    .cs-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 12px; }
+    .cs-demo .cap { font-size: 14px; color: var(--ink); min-height: 2.6em; margin: 0; }
+    .cs-demo svg { width: 100%; max-width: 360px; height: auto; display: block; margin: 0 auto; }
+    .cs-demo .stepper { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+    .cs-demo .stepper button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; font: 15px/1 Geist, sans-serif; }
+    .cs-demo .stepper button:disabled { opacity: .35; cursor: default; }
+    .cs-demo .rel { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+    .cs-demo table { border-collapse: collapse; font: 12.5px/1.2 "Geist Mono", monospace; }
+    .cs-demo caption { text-align: left; font-weight: 600; padding-bottom: 4px; color: var(--ink); }
+    .cs-demo th, .cs-demo td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+    .cs-demo th { background: var(--tint); }
+    .cs-demo tr.r td { background: color-mix(in srgb, #4a7fa5 24%, var(--surface)); }
+    .cs-demo tr.s td { background: color-mix(in srgb, #c08a2e 26%, var(--surface)); }
+    .cs-demo tr.b td { background: color-mix(in srgb, #6b8f5e 26%, var(--surface)); }
+    .cs-demo .op { font: 600 14px/1 "Geist Mono", monospace; background: var(--tint); border-radius: 999px; padding: 6px 12px; }
+    .cs-demo .key { display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+    .cs-demo .key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+    .fcard .more { display: grid; gap: 6px; text-align: left; font-size: 13px; line-height: 1.5; max-width: 34em; }
+    .fcard .more span { border-radius: 9px; padding: 6px 10px; }
+    .fcard .more .concept { border: 1px solid var(--line); }
+    .fcard .more .ex { background: var(--tint); }
+
+    .study-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 14px; }
+    .study-demo .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .study-demo .tiles div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); }
+    .study-demo .tiles span { display: block; font-size: 12px; color: var(--muted); }
+    .study-demo .tiles b { display: block; font: 500 24px/1.2 Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+    .study-demo .tiles em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+    .study-demo .days { display: flex; align-items: flex-end; gap: 3px; height: 80px; padding: 0 2px; }
+    .study-demo .days i { flex: 1; background: var(--clay); border-radius: 3px 3px 0 0; transform-origin: bottom; animation: grow .9s ease-out both; }
+    .study-demo .days i.off { background: var(--line); }
+    .study-demo .days i:nth-child(3n) { animation-delay: .08s; } .study-demo .days i:nth-child(3n+1) { animation-delay: .16s; }
+    @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    .study-demo .work { background: var(--clay-soft); border: 1px solid color-mix(in srgb, var(--clay) 25%, transparent); border-radius: 14px; padding: 12px 14px; }
+    .study-demo .work .k { font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .study-demo .work .head { font: 400 19px/1.3 Newsreader, Georgia, serif; margin: 6px 0 10px; }
+    .study-demo .item { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; margin-top: 8px; }
+    .study-demo .item b { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--clay); color: #fff; display: grid; place-items: center; font-size: 11px; }
+    .study-demo .item strong { display: block; font-size: 14px; font-weight: 500; }
+    .study-demo .item span { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+    @media (prefers-reduced-motion: reduce) { .study-demo .days i { animation: none; } }
+    .pen-demo { display: grid; grid-template-columns: auto 1fr; gap: 12px 14px; align-items: center; }
+    .pen-demo .tab { grid-column: 1 / -1; }
+    .pen-demo .tab { background: #2a2826; border-radius: 22px; padding: 12px; box-shadow: var(--shadow); }
+    .pen-demo .tab-top { display: flex; justify-content: flex-end; padding: 2px 4px 10px; }
+    .pen-demo .pill { display: inline-flex; align-items: center; gap: 6px; background: #fffdfa; color: #6b665e; border-radius: 999px; padding: 4px 10px; font-size: 11.5px; }
+    .pen-demo .pill i { width: 6px; height: 6px; border-radius: 50%; background: #5f7d4c; }
+    .pen-demo .pill b { color: #1c1c1e; font-weight: 600; }
+    .pen-demo .paper { background: #fffdfa repeating-linear-gradient(to bottom, transparent 0, transparent 37px, #efe9de 37px, #efe9de 38px); border-radius: 12px; aspect-ratio: 420 / 170; display: grid; place-items: center; background-position: 0 6px; }
+    .pen-demo .hand { width: 100%; padding: 8px 18px; display: grid; gap: 0; }
+    .pen-demo .hand span { font: 500 clamp(22px, 2.6vw, 30px)/38px Caveat, "Segoe Print", cursive; color: #1c1c1e; white-space: nowrap; clip-path: inset(0 100% 0 0); animation: write 5s steps(28, end) infinite; }
+    .pen-demo .hand span + span { animation-name: write2; }
+    @keyframes write { 0% { clip-path: inset(0 100% 0 0); } 30%, 100% { clip-path: inset(0 0 0 0); } }
+    @keyframes write2 { 0%, 30% { clip-path: inset(0 100% 0 0); } 60%, 100% { clip-path: inset(0 0 0 0); } }
+    .pen-demo .tab-bar { display: flex; gap: 6px; padding: 10px 2px 0; font-size: 11.5px; color: #d6d0c6; }
+    .pen-demo .tab-bar span { background: #3a3734; border-radius: 8px; padding: 4px 9px; }
+    .pen-demo .tab-bar .send { margin-left: auto; background: #fffdfa; color: #1c1c1e; font-weight: 600; }
+    .pen-demo .arrow { font-size: 26px; color: var(--clay); transform: rotate(90deg); padding: 0 6px; }
+    .pen-demo .box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); }
+    .pen-demo .box .k { font: 500 11px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .pen-demo .box p { margin: 8px 0 0; font-size: 15px; line-height: 1.5; }
+    
+    @media (prefers-reduced-motion: reduce) { .pen-demo .hand span { animation: none; clip-path: none; } }
+    .buddy-demo { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .buddy-demo .modes { display: flex; gap: 4px; padding: 10px; border-bottom: 1px solid var(--line); }
+    .buddy-demo .modes button { flex: 1; border: 0; border-radius: 10px; padding: 8px 10px; font: 500 13px/1 Geist, sans-serif; color: var(--muted); background: none; cursor: pointer; }
+    .buddy-demo .modes button[aria-pressed="true"] { background: var(--tint); color: var(--ink); }
+    .buddy-demo .app { display: grid; grid-template-columns: 150px 1fr; min-height: 390px; }
+    .buddy-demo .lib { border-right: 1px solid var(--line); padding: 12px 8px; font-size: 12.5px; }
+    .buddy-demo .lib .k { font: 500 10px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 6px 8px; }
+    .buddy-demo .row { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 8px; min-height: 30px; }
+    .buddy-demo .row .n { flex: 1; font-weight: 500; }
+    .bhead { position: relative; width: 22px; height: 22px; overflow: hidden; border-radius: 6px; flex: none; display: none; }
+    .bhead .bud { position: absolute; left: -5px; top: -7px; }
+    .buddy-demo.on .bhead { display: block; }
+    .bhead.sick::after { content: ""; position: absolute; right: 0; top: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); opacity: .6; }
+    .bud { display: block; background-repeat: no-repeat; image-rendering: pixelated; animation: bud var(--dur) steps(var(--frames)) infinite; }
+    @keyframes bud { from { background-position: 0 0; } to { background-position: calc(-1 * var(--sheet)) 0; } }
+    @media (prefers-reduced-motion: reduce) { .bud { animation: none; } }
+    .buddy-demo .pane { display: flex; flex-direction: column; min-width: 0; }
+    .buddy-demo .notice { display: none; align-items: center; gap: 8px; padding: 7px 14px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+    .buddy-demo .notice b { color: var(--ink); font-weight: 500; }
+    .buddy-demo .notice .help { margin-left: auto; border-radius: 999px; background: var(--tint); padding: 3px 10px; font-size: 12px; color: var(--ink); }
+    .buddy-demo.on.sick .notice { display: flex; }
+    .buddy-demo .chat, .buddy-demo .clinic { padding: 16px; font-size: 13.5px; }
+    .buddy-demo .chat p { margin: 0 0 12px; color: var(--muted); }
+    .buddy-demo .chat .ask { margin-top: 70px; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 12px; color: var(--muted); }
+    .buddy-demo .clinic { display: none; grid-template-columns: auto 1fr; gap: 16px; align-items: stretch; flex: 1; }
+    .buddy-demo.on .clinic { display: grid; }
+    .buddy-demo.on .chat { display: none; }
+    .buddy-demo .room { background: linear-gradient(var(--tint), var(--bg)); border-radius: 14px; padding: 18px 16px; display: grid; justify-items: center; align-content: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .buddy-demo .room b { font: 500 16px/1.2 Newsreader, Georgia, serif; color: var(--ink); }
+    .buddy-demo .case .k { font: 500 10px/1 "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .buddy-demo .case p { margin: 6px 0 10px; }
+    .buddy-demo .case .obj { font-size: 12px; color: var(--muted); }
+    .buddy-demo .case .write { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px; color: var(--muted); font-size: 12.5px; min-height: 48px; }
+    .buddy-demo .case .go { margin-top: 10px; border: 0; border-radius: 10px; padding: 8px 14px; background: var(--ink); color: var(--surface); font: 500 13px/1 Geist, sans-serif; cursor: pointer; }
+    .buddy-demo .case .cured { display: none; margin: 8px 0 0; color: var(--moss); font-weight: 500; }
+    .buddy-demo.healed .case .cured { display: block; }
+    .buddy-demo.healed .case .go { display: none; }
+    @media (max-width: 640px) {
+      .buddy-demo .app { grid-template-columns: 1fr; }
+      .buddy-demo .lib { border-right: 0; border-bottom: 1px solid var(--line); }
+      .buddy-demo .clinic { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="nota-mark.svg" alt="" />Nota</a>
+      <div class="links">
+        <a href="#readiness">Exam readiness</a>
+        <a href="#features">Features</a>
+        <a href="#flashcards">Flashcards</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <button class="theme" id="theme" aria-label="Switch light or dark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="btn small" href="#download" data-download>Download</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div>
+        <span class="eyebrow"><b>Free</b> · for Windows · your files stay on your computer</span>
+        <h1>Study your own lectures, <em>with a tutor that read them.</em></h1>
+        <p class="lede">Drop in your slides, transcripts and syllabus. Nota teaches you every learning objective, shows the page each answer came from, and tells you how ready you are for each exam, objective by objective, so you know exactly what to practise next.</p>
+        <div class="cta">
+          <a class="btn" href="#download" data-download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download for Windows
+          </a>
+          <a class="btn ghost" href="#readiness">See how ready you are</a>
+        </div>
+        <p class="fine">Windows 10 or 11 · 64-bit · free AI key from Google or Groq, set up in a minute</p>
+      </div>
+
+      <div class="window" aria-label="Nota answering a question about a lecture">
+        <div class="bar"><img src="nota-mark.svg" alt="" /> Tutor · Pharmacology <span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="chat">
+          <div class="q">Why does an oral dose reach the blood at a lower level than an IV one?</div>
+          <div class="a">Because of the <b>first-pass effect</b>: a drug absorbed from the gut goes to the liver before it reaches the circulation, and the liver metabolises part of it <span class="cite">1</span>. What gets through is the <b>bioavailability</b>, 100% for IV and less for oral <span class="cite">2</span>.</div>
+          <div class="source"><span class="cite">1</span><div><b>Sample lecture: Pharmacokinetics basics · p. 6</b><br />Absorbed drug → portal vein → liver → general circulation</div></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="readiness">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Exam readiness</span>
+          <h2 class="serif">Know which objectives you'd lose marks on, weeks before the exam.</h2>
+          <p class="sub">Every learning objective of every course gets a colour, scored from what you've actually done: the flashcards you remember, the cases you answered well or weakly, the answers the tutor marked. The number is how much of the exam you could answer today. Click any square to see why, and practise it in one click.</p>
+        </div>
+
+        <div class="ready-demo" id="demo-ready" aria-label="A sample readiness map for one course">
+          <div class="top">
+            <svg class="ring" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="33" class="track"/><circle cx="40" cy="40" r="33" class="fill" style="stroke-dasharray: 128 208"/><text x="40" y="40">62%</text></svg>
+            <div>
+              <strong>BIO 2100 Midterm <span class="muted">· in 12 days</span></strong>
+              <span class="meta">Ready on 7 of 18 objectives · <b class="risk">6 at risk</b></span>
+              <span class="legend"><span><i class="t ready"></i>Ready</span><span><i class="t getting"></i>Getting there</span><span><i class="t shaky"></i>Shaky</span><span><i class="t none"></i>Not started</span></span>
+            </div>
+          </div>
+          <div class="lect"><b>Enzymes <span class="muted">(sample)</span></b>
+            <div class="row"><span>Kinetics</span><span class="tiles"><button class="t ready" data-o="Define Km and Vmax"></button><button class="t ready" data-o="Read a Michaelis-Menten curve"></button><button class="t getting" data-o="Explain what a Lineweaver-Burk plot shows"></button></span></div>
+            <div class="row"><span>Inhibition</span><span class="tiles"><button class="t shaky" data-o="Compare competitive and non-competitive inhibition"></button><button class="t shaky" data-o="Predict how an inhibitor changes Km and Vmax"></button><button class="t getting" data-o="Describe allosteric regulation"></button></span></div>
+          </div>
+          <div class="lect"><b>Metabolism <span class="muted">(sample)</span></b>
+            <div class="row"><span>Glycolysis</span><span class="tiles"><button class="t ready" data-o="List the steps of glycolysis"></button><button class="t ready" data-o="Name the enzymes that use ATP"></button><button class="t getting" data-o="Explain how glycolysis is regulated"></button><button class="t shaky" data-o="Calculate the net ATP yield"></button></span></div>
+            <div class="row"><span>The Krebs cycle</span><span class="tiles"><button class="t ready" data-o="Name the cycle's inputs and outputs"></button><button class="t none" data-o="Explain why the cycle needs oxygen"></button><button class="t none" data-o="Describe where the cycle happens in the cell"></button></span></div>
+          </div>
+          <p class="pick" id="ready-pick" aria-live="polite">Click a square to see the objective.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <span class="kicker">What it does</span>
+        <h2 class="serif">Three things, done well, from your own material.</h2>
+        <p class="sub">Nota only answers from what you give it, and shows where each answer came from. If it isn't in your files, it tells you.</p>
+        <div class="features">
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10M7 12h6"/><path d="M21 12a9 9 0 1 1-4-7.5L21 3v6h-6"/></svg></div>
+            <h3>A tutor that read your lectures</h3>
+            <p>Ask anything, or <span class="mono">/teach</span> a whole lecture objective by objective. Every claim cites the slide it came from, and transcripts you paste in are read with their slides.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+            <h3>Practice that sticks</h3>
+            <p>Exam-style cases from your own lectures with <span class="mono">/cases</span>, and flashcards made section by section. What you miss comes back until you know it.</p>
+          </div>
+          <div class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <h3>Exams you see coming</h3>
+            <p>Nota reads your syllabi, puts each exam on the calendar in its course's colour, reminds you four weeks ahead, and plans your prep around your weakest lectures.</p>
+          </div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Try it</span>
+          <h2 class="serif">Every answer shows the page it came from.</h2>
+          <p class="sub">Nota answers from your own slides and readings, and numbers each claim. Click a number to see the exact slide, with the passage it used highlighted. In the app, click the slide and it opens at that page.</p>
+        </div>
+
+        <div class="answer-demo" id="demo-answer">
+          <div class="q">What happens to the cell in caseous necrosis?</div>
+          <div class="a">The dead tissue turns soft and crumbly, like cottage cheese, which is where the name comes from <button class="cite" data-cite="1" aria-pressed="true" aria-label="Show source 1">1</button>. It is the typical pattern in tuberculosis, where a wall of immune cells forms around the dead centre <button class="cite" data-cite="2" aria-pressed="false" aria-label="Show source 2">2</button>.</div>
+          <div class="cited" id="cited" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="flashcards">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Try it</span>
+          <h2 class="serif">Flashcards in plain words, beside the slide they came from.</h2>
+          <p class="sub">Pick a lecture or a whole folder and Nota makes cards section by section for every learning objective, without repeats: the term in plain words, the idea behind it, and an example. Turn a card and the slide it came from appears next to it, so you remember the picture too. Hard cards come back soon; easy ones wait days. Your place is saved.</p>
+        </div>
+
+        <div class="flash-demo" id="demo-flash" tabindex="0" aria-label="Flashcard demo. Space turns the card, 1 is hard, 2 is easy.">
+          <div class="head"><span>Flashcards · Cell injury</span><span id="flash-left">4 left</span></div>
+          <div class="body">
+            <button class="fcard" id="fcard" aria-live="polite"></button>
+            <div class="fsource hidden" id="fsource">
+              <div class="meta"><span id="fsource-name"></span><span id="fsource-page"></span></div>
+              <div class="slide" id="fslide"></div>
+              <div class="veil">Shown when you turn the card</div>
+            </div>
+          </div>
+          <div class="rate">
+            <button class="hard" id="rate-hard"><kbd>1</kbd>Hard</button>
+            <button id="rate-next"><kbd>Space</kbd><span id="next-label">Show</span></button>
+            <button class="easy" id="rate-easy"><kbd>2</kbd>Easy</button>
+          </div>
+          <div class="flash-done">
+            <p id="flash-summary"></p>
+            <button class="btn small ghost" id="flash-again">Start over</button>
+          </div>
+          <p class="keys">Click the card to select it, then use Space, 1 and 2.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <span class="kicker">Get started</span>
+        <h2 class="serif">Up and running in three steps.</h2>
+        <div class="steps">
+          <div class="step"><h3>Download and install</h3><p>One installer for Windows. No account, no sign-up.</p></div>
+          <div class="step"><h3>Connect a free AI key</h3><p>Nota shows you where to get one from Google Gemini, Groq or Cerebras, all free, and checks it for you. Connect more than one and each backs up the others.</p></div>
+          <div class="step"><h3>Drop in your lectures</h3><p>PDFs, Word files, notes and links. Nota reads them on your computer, and you can start asking.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="wrap privacy">
+        <div>
+          <span class="kicker">Privacy</span>
+          <h2 class="serif">Your library lives on your computer.</h2>
+          <p class="sub">Nota doesn't have accounts or a cloud copy of your files. Reading, search and memory all run locally.</p>
+        </div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Your files are read and indexed on your computer. They are never uploaded.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>To answer a question, only the few passages it needs go to the AI provider you chose, with your own key.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Your key is stored only on your computer, and only Nota itself can change it.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Nota counts installs anonymously: once a day, that it was opened, its version and a random install number. Never your name, files or questions, and one switch turns it off.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="wrap">
+        <img src="nota-mark.svg" alt="Nota" />
+        <h2 class="serif">Get Nota for Windows.</h2>
+        <p class="sub" style="margin-inline:auto">Free. About 500 MB. Your study data stays on your computer.</p>
+        <p style="margin-top:28px"><a class="btn" id="download-link" data-download href="#download">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Download Nota <span id="version"></span>
+        </a></p>
+        <div class="reqs"><span>Windows 10 / 11, 64-bit</span><span>8 GB RAM recommended</span><span>2 GB free disk space</span><span>Internet for AI answers</span></div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <span class="kicker">Questions</span>
+        <h2 class="serif">Good to know.</h2>
+        <div class="faq">
+          <details><summary>Is Nota really free?</summary><p>Yes. Nota is free, and the AI providers it uses, Google Gemini, Groq and Cerebras, all have free tiers that cover normal studying. You make a key with your own account, so there's no bill from us.</p></details>
+          <details><summary>Windows says “Windows protected your PC”. Is it safe?</summary><p>Windows shows this for new apps that haven't built up a download reputation yet. Click <b>More info</b>, then <b>Run anyway</b>. The installer only puts Nota in your user folder and doesn't need administrator rights.</p></details>
+          <details><summary>What files can I add?</summary><p>PDFs (slides exported as PDF work well), Word documents (.docx), EPUB books, Markdown and plain text, web pages by link, and notes you paste in. Scanned PDFs with no text layer need the free Tesseract OCR installed.</p></details>
+          <details><summary>Does it work offline?</summary><p>Your library, reading, search and calendar all work offline. Answers, quizzes and skims need the internet, because they use the AI provider.</p></details>
+          <details><summary>Mac or Linux?</summary><p>Nota is Windows-only for now.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="brand"><img src="nota-mark.svg" alt="" style="width:22px;height:22px" />Nota</span>
+      <span>Study your own lectures.</span>
+      <span style="margin-left:auto">© <span id="year">2026</span> Nota</span>
+    </div>
+  </footer>
+
+  <script>
+    /*
+     * The download: always the newest release. Every release uploads the
+     * installer a second time as Nota-Setup.exe, so this link never changes.
+     * The version shown is read from GitHub, so it stays current too.
+     */
+    const REPO = 'aaronsu0105/nota';
+    const DOWNLOAD_URL = `https://github.com/${REPO}/releases/latest/download/Nota-Setup.exe`;
+    document.getElementById('download-link').href = DOWNLOAD_URL;
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((release) => {
+        if (release?.tag_name) document.getElementById('version').textContent = release.tag_name.replace(/^v/, '');
+      })
+      .catch(() => {});
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // The nav gets a hairline once the page scrolls under it.
+    const nav = document.getElementById('nav');
+    addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+    // Light or dark: follows the system until chosen.
+    const root = document.documentElement;
+    let stored = null;
+    try { stored = localStorage.getItem('nota-site-theme'); } catch {}
+    if (stored) root.dataset.theme = stored;
+    document.getElementById('theme').addEventListener('click', () => {
+      const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      root.dataset.theme = dark ? 'light' : 'dark';
+      try { localStorage.setItem('nota-site-theme', root.dataset.theme); } catch {}
+    });
+
+    // A slide, drawn from a title, bullets and the one to highlight.
+    const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const drawSlide = (slide) => `<span class="deck">${esc(slide.deck)}</span><h4>${esc(slide.title)}</h4><ul>${slide.bullets
+      .map((b, i) => `<li>${i === slide.hl ? `<span class="hl">${esc(b)}</span>` : esc(b)}</li>`)
+      .join('')}</ul><div class="foot"><span>${esc(slide.course)}</span><span>${slide.page}</span></div>`;
+
+    // Answers with sources: each number opens its slide.
+    const SOURCES = {
+      // Sample slides written for this page, not taken from any course.
+      1: { name: 'Sample lecture: How cells die', page: 8, slide: { deck: 'Sample slide · Necrosis', title: 'Caseous ("cheese-like") necrosis', bullets: ['Looks like soft, crumbly white cheese', 'Cell outlines are lost in the dead area', 'Classic example: tuberculosis'], hl: 0, course: 'Sample course · Week 2', page: 8 } },
+      2: { name: 'Sample lecture: How cells die', page: 9, slide: { deck: 'Sample slide · Necrosis', title: 'Seen under a microscope', bullets: ['A shapeless, pink centre of dead cells', 'Walled off by immune cells (a granuloma)', 'Also caused by some fungal infections'], hl: 1, course: 'Sample course · Week 2', page: 9 } },
+    };
+    const cited = document.getElementById('cited');
+    const showSource = (n) => {
+      const source = SOURCES[n];
+      document.querySelectorAll('#demo-answer button.cite').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cite === String(n))));
+      cited.innerHTML = `<div class="meta"><span><b>${esc(source.name)}</b> · p. ${source.page}</span><span>Source ${n}</span></div><div class="slide">${drawSlide(source.slide)}</div>`;
+    };
+    document.getElementById('demo-answer').addEventListener('click', (event) => {
+      const button = event.target.closest('button.cite');
+      if (button) showSource(button.dataset.cite);
+    });
+    showSource(1);
+
+    // Readiness: a square says which objective it is and where it stands.
+    const LABEL = { ready: 'Ready', getting: 'Getting there', shaky: 'Shaky: practise a case', none: 'Not started: learn it with /teach' };
+    document.getElementById('demo-ready').addEventListener('click', (event) => {
+      const tile = event.target.closest('button.t');
+      if (!tile) return;
+      document.querySelectorAll('#demo-ready button.t').forEach((t) => t.setAttribute('aria-pressed', String(t === tile)));
+      const status = [...tile.classList].find((c) => c in LABEL);
+      document.getElementById('ready-pick').textContent = `${tile.dataset.o} · ${LABEL[status]}`;
+    });
+    document.querySelectorAll('#demo-ready button.t').forEach((t) => t.setAttribute('aria-label', t.dataset.o));
+
+    // Flashcards: turn, rate, and see the slide each card came from.
+    const CARDS = [
+      { term: 'Caseous necrosis', meaning: 'A kind of cell death where the dead tissue turns soft and crumbly, like cottage cheese. It is the typical sign of tuberculosis.', concept: 'The immune system walls the infection off in a granuloma; the cells in the middle die, and what is left breaks down into that crumbly mass.', example: 'A chest X-ray of tuberculosis can show these walled-off patches in the lung.', page: 8, slide: SOURCES[1].slide },
+      { term: 'Coagulative necrosis', meaning: 'A kind of cell death where the tissue keeps its shape, like a ghost outline of itself. It usually happens when blood supply is cut off, as in a heart attack.', page: 7, slide: { deck: 'Sample slide · Necrosis', title: 'Coagulative ("ghost outline") necrosis', bullets: ['The pattern seen most often', 'Shape of the tissue stays; nuclei disappear', 'Usually follows a loss of blood supply'], hl: 1, course: 'Sample course · Week 2', page: 7 } },
+      { term: 'Steatosis', meaning: 'A buildup of fat inside liver cells. Alcohol, diabetes, obesity and poor diet are common causes.', page: 5, slide: { deck: 'Sample slide · Build-ups in cells', title: 'Fat in the liver', bullets: ['Fat droplets gather inside liver cells', 'Linked to alcohol, diabetes and obesity', 'Can reverse once the cause is removed'], hl: 0, course: 'Sample course · Week 2', page: 5 } },
+      { term: 'Atrophy', meaning: 'When a tissue or organ shrinks because its cells get smaller, for example a muscle that goes unused.', page: 3, slide: { deck: 'Sample slide · Cell adaptation', title: 'Shrinking tissue', bullets: ['Cells get smaller, so the organ shrinks', 'Triggers: disuse, poor blood or nerve supply', 'e.g. a leg muscle after time in a cast'], hl: 0, course: 'Sample course · Week 2', page: 3 } },
+    ];
+    const flash = document.getElementById('demo-flash');
+    const fcard = document.getElementById('fcard');
+    const fsource = document.getElementById('fsource');
+    let queue = [];
+    let turned = false;
+    let tally = { easy: 0, hard: 0 };
+    const drawCard = () => {
+      const card = queue[0];
+      flash.classList.toggle('finished', !card);
+      document.getElementById('flash-left').textContent = `${queue.length} left`;
+      if (!card) {
+        document.getElementById('flash-summary').textContent = `Deck done: ${tally.easy} easy, ${tally.hard} hard. In the app, hard cards come back in ten minutes and easy ones in a few days.`;
+        return;
+      }
+      const more = card.concept ? `<span class="more"><span class="concept"><b>The concept:</b> ${esc(card.concept)}</span>${card.example ? `<span class="ex"><b>Example:</b> ${esc(card.example)}</span>` : ''}</span>` : '';
+      fcard.innerHTML = `<span class="term">${esc(card.term)}</span>${turned ? `<span class="rule"></span><span class="meaning">${esc(card.meaning)}</span>${more}` : '<span class="hint">Click or press Space to turn</span>'}`;
+      fsource.classList.toggle('hidden', !turned);
+      document.getElementById('fsource-name').textContent = 'Sample lecture: How cells die';
+      document.getElementById('fsource-page').textContent = `p. ${card.page}`;
+      document.getElementById('fslide').innerHTML = drawSlide(card.slide);
+      document.getElementById('next-label').textContent = turned ? 'Next' : 'Show';
+    };
+    const start = () => {
+      queue = [...CARDS];
+      turned = false;
+      tally = { easy: 0, hard: 0 };
+      drawCard();
+    };
+    const turnOrNext = () => {
+      if (!queue.length) return;
+      if (!turned) turned = true;
+      else { queue.push(queue.shift()); turned = false; }
+      drawCard();
+    };
+    const rate = (how) => {
+      if (!queue.length) return;
+      const card = queue.shift();
+      tally[how] += 1;
+      // A hard card comes back two cards later, as in the app.
+      if (how === 'hard') queue.splice(Math.min(2, queue.length), 0, card);
+      turned = false;
+      drawCard();
+    };
+    fcard.addEventListener('click', () => { flash.focus({ preventScroll: true }); turnOrNext(); });
+    document.getElementById('rate-next').addEventListener('click', turnOrNext);
+    document.getElementById('rate-hard').addEventListener('click', () => rate('hard'));
+    document.getElementById('rate-easy').addEventListener('click', () => rate('easy'));
+    document.getElementById('flash-again').addEventListener('click', start);
+    // Keys only while the demo is selected, so Space still scrolls the page elsewhere.
+    flash.addEventListener('keydown', (event) => {
+      if (event.target.closest('button') && event.target !== fcard && event.code === 'Space') return;
+      if (event.code === 'Space') { event.preventDefault(); turnOrNext(); }
+      else if (event.key === '1') rate('hard');
+      else if (event.key === '2') rate('easy');
+    });
+    start();
+
+  </script>
+</body>
+</html>
