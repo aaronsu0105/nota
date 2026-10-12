@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nota — study your own lectures</title>
+  <meta name="description" content="Nota is a free Windows study app: a tutor that reads your own lectures, cites the slide behind every answer, maps your exam readiness and makes flashcards. Your files stay on your computer." />
+  <meta property="og:title" content="Nota — study your own lectures" />
+  <meta property="og:description" content="A tutor that reads your own lectures, cites the slide behind every answer, maps your exam readiness and makes flashcards. Free for Windows." />
+  <meta property="og:image" content="nota-512.png" />
+  <meta name="theme-color" content="#d95d39" />
+  <link rel="icon" type="image/svg+xml" href="nota-mark.svg" />
+  <link rel="apple-touch-icon" href="nota-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Literata:opsz,wght@7..72,400&family=Source+Sans+3:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================ tokens
+       Nota's palette: deep slate ink on clean white, one warm brand accent,
+       and the readiness colours (green ready, amber getting there, red at
+       risk, grey not started). Change a colour here and it changes everywhere. */
+    :root {
+      --slate-950: #0e1726;
+      --slate-900: #142033;
+      --slate-800: #1e2b40;
+      --slate-600: #475569;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --white: #ffffff;
+      --paper: #fbfaf7;
+      --brand: #d95d39;          /* the Nota mark */
+      --brand-soft: #fbe9e1;
+      --ready: #2f9e6b;          /* Ready */
+      --getting: #e0a63a;        /* Getting there */
+      --risk: #d64545;           /* Shaky / at risk */
+      --none: #cbd5e1;           /* Not started */
+      --hl: #fff1b8;             /* the highlighted line on a slide */
+      --radius: 18px;
+      --shadow: 0 1px 2px rgba(14, 23, 38, .05), 0 18px 50px -18px rgba(14, 23, 38, .22);
+      --serif: "Newsreader", Georgia, serif;
+      --sans: "Geist", system-ui, sans-serif;
+      --mono: "Geist Mono", ui-monospace, monospace;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; overflow-x: clip; }
+    body { background: var(--paper); color: var(--slate-900); font: 400 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    .wrap { width: min(1160px, 100% - 32px); margin-inline: auto; }
+    h1, h2, h3 { font-family: var(--serif); font-weight: 400; letter-spacing: -.015em; margin: 0; }
+    h2 { font-size: clamp(32px, 4.2vw, 50px); line-height: 1.08; }
+    /* Section labels: a soft italic serif in sentence case, not shouted monospace. */
+    .kicker { display: inline-block; font: italic 400 19px/1.2 var(--serif); letter-spacing: 0; color: #c4673f; margin-bottom: 12px; }
+    .kicker::first-letter { text-transform: uppercase; }
+    .sub { color: var(--slate-600); max-width: 46ch; margin: 18px 0 0; }
+    section { padding: 120px 0; }
+    .split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; align-items: center; }
+
+    /* ============================================================== nav */
+    nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--paper) 85%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid transparent; transition: border-color .3s; }
+    nav.scrolled { border-color: var(--slate-200); }
+    nav .wrap { display: flex; align-items: center; height: 64px; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 10px; font: 500 22px/1 var(--serif); text-decoration: none; }
+    .brand img { width: 28px; height: 28px; }
+    nav .links { margin-left: auto; display: flex; gap: 24px; font-size: 14px; color: var(--slate-600); }
+    nav .links a { text-decoration: none; }
+    nav .links a:hover { color: var(--slate-900); }
+    .btn { display: inline-flex; align-items: center; gap: 9px; padding: 13px 20px; border-radius: 12px; background: var(--slate-900); color: var(--white); text-decoration: none; font: 500 15px/1 var(--sans); border: 0; cursor: pointer; box-shadow: 0 10px 24px -12px rgba(14, 23, 38, .55); transition: transform .2s, background .2s; }
+    .btn:hover { transform: translateY(-1px); background: var(--slate-800); }
+    .btn.ghost { background: transparent; color: var(--slate-900); box-shadow: inset 0 0 0 1px var(--slate-200); }
+    .btn.ghost:hover { background: var(--white); }
+    .btn.small { padding: 10px 14px; font-size: 14px; }
+
+    /* ============================================================ 1 hero */
+    .hero { padding: 88px 0 120px; position: relative; isolation: isolate; }
+    .hero .split { grid-template-columns: 1.05fr 1fr; }
+    .hero-light { position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(closest-side at 18% 40%, rgba(217, 93, 57, .10), rgba(217, 93, 57, .05) 45%, rgba(217, 93, 57, 0)) 0 0 / 100% 100% no-repeat,
+        radial-gradient(closest-side at 82% 62%, rgba(47, 158, 107, .08), rgba(47, 158, 107, .03) 50%, rgba(47, 158, 107, 0)) 0 0 / 100% 100% no-repeat; }
+    .eyebrow { display: inline-flex; gap: 8px; font-size: 13px; color: var(--slate-600); padding: 7px 13px; border: 1px solid var(--slate-200); border-radius: 999px; background: var(--white); }
+    .eyebrow b { color: var(--ready); font-weight: 600; }
+    .hero h1 { font-size: clamp(44px, 6.4vw, 84px); line-height: .98; margin: 22px 0 0; }
+    .hero h1 em { color: var(--brand); }
+    .hero .lede { font-size: 19px; color: var(--slate-600); max-width: 44ch; margin: 24px 0 0; }
+    .hero .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .hero .fine { font-size: 13px; color: var(--slate-400); margin-top: 14px; }
+    .reveal { opacity: 0; transform: translateY(24px); }           /* set back by anime.js */
+    .no-motion .reveal { opacity: 1; transform: none; }
+
+    /* The app, abstracted: a library rail, a tutor answer, a readiness ring. */
+    .appui { position: relative; background: var(--white); border-radius: 22px; box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .06); padding: 14px; display: grid; grid-template-columns: 110px 1fr; gap: 14px; min-height: 380px; }
+    .appui .rail { display: flex; flex-direction: column; gap: 9px; padding: 6px; }
+    .appui .rail i { display: block; height: 9px; border-radius: 5px; background: var(--slate-100); }
+    .appui .rail i:nth-child(1) { width: 70%; background: var(--slate-200); height: 11px; margin-bottom: 6px; }
+    .appui .rail i:nth-child(3) { background: var(--brand-soft); }
+    .appui .main { background: var(--slate-100); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .appui .q { align-self: flex-end; background: var(--slate-900); color: var(--white); font-size: 13px; padding: 9px 12px; border-radius: 12px 12px 4px 12px; max-width: 80%; }
+    .appui .a { background: var(--white); font: 15px/1.55 "Literata", Georgia, serif; padding: 12px 14px; border-radius: 12px; box-shadow: 0 1px 2px rgba(14, 23, 38, .06); }
+    .cite { display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: var(--brand); color: var(--white); font: 600 11px/1 var(--sans); vertical-align: 1px; }
+    .appui .ring { position: absolute; right: -26px; bottom: -26px; width: 116px; height: 116px; border-radius: 50%; background: var(--white); box-shadow: var(--shadow); display: grid; place-items: center; }
+    .appui .ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+    .appui .ring b { position: absolute; font: 500 22px/1 var(--serif); }
+
+    /* ======================================================= 2 readiness */
+    .ready-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 26px; }
+    .ready-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .ready-head strong { font: 500 19px/1.2 var(--serif); }
+    .ready-head span { font: 500 13px/1 var(--mono); color: var(--slate-600); }
+    .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 20px; }
+    .sq { aspect-ratio: 1; border-radius: 7px; background: var(--slate-100); border: 0; padding: 0; cursor: pointer; transform: scale(0); }
+    .no-motion .sq { transform: none; }
+    .sq:focus-visible { outline: 2px solid var(--slate-900); outline-offset: 2px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; font-size: 13px; color: var(--slate-600); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .pick { margin: 14px 0 0; min-height: 1.6em; font-size: 14px; color: var(--slate-600); }
+
+    /* ================================================= 3 tutor, scrubbed
+       The section is tall; its stage sticks while you scroll through it, and
+       how far you are through it drives the timeline. Height = scrub length:
+       see SCRUB in the script. */
+    .scrub { height: 320vh; padding: 0; position: relative; }
+    .scrub .stage { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; }
+    .scrub .split { grid-template-columns: .85fr 1.15fr; gap: 48px; }
+    .scrub-steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; }
+    .scrub-steps li { display: flex; gap: 12px; align-items: baseline; color: var(--slate-400); transition: color .3s; font-size: 15px; }
+    .scrub-steps li b { font: 500 12px/1 var(--mono); }
+    .scrub-steps li.on { color: var(--slate-900); }
+    .duo { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .chat, .doc { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 18px; }
+    .chat .label, .doc .label { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--slate-400); margin-bottom: 14px; }
+    .bubble { background: var(--slate-100); border-radius: 14px 14px 14px 4px; padding: 13px 14px; font: 15px/1.55 "Literata", Georgia, serif; opacity: 0; transform: translateX(-30px); }
+    .bubble.q { background: var(--slate-900); color: var(--white); border-radius: 14px 14px 4px 14px; font: 14px/1.45 var(--sans); margin: 0 0 12px auto; max-width: 90%; }
+    .doc .slide { aspect-ratio: 4 / 3.2; border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px; font-size: 13.5px; }
+    .doc .slide h4 { margin: 0 0 10px; font: 500 17px/1.2 var(--serif); }
+    .doc .slide p { margin: 7px 0; color: var(--slate-600); position: relative; }
+    .doc .slide .mark { position: relative; color: var(--slate-900); }
+    .doc .slide .mark::before { content: ""; position: absolute; inset: -2px -5px; border-radius: 5px; background: var(--hl); z-index: -1; transform-origin: 0 50%; transform: scaleX(var(--hl-scale, 0)); }
+    .doc .slide .mark { isolation: isolate; }
+    .doc .foot { display: flex; justify-content: space-between; margin-top: 10px; font: 500 11.5px/1 var(--mono); color: var(--slate-400); }
+    .connector { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .connector path { fill: none; stroke: var(--brand); stroke-width: 2.2; stroke-linecap: round; }
+    .connector circle { fill: var(--brand); }
+
+    /* ======================================================= 4 flashcards */
+    .stack { position: relative; height: 380px; perspective: 1400px; }
+    .card { position: absolute; inset: 0 8% 0 8%; transform-style: preserve-3d; cursor: pointer; }
+    .card .face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 20px; background: var(--white); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .06); padding: 28px; display: flex; flex-direction: column; }
+    .card .front { align-items: center; justify-content: center; text-align: center; }
+    .card .front .term { font: 400 34px/1.1 var(--serif); }
+    .card .front .hint { margin-top: 14px; font-size: 13px; color: var(--slate-400); }
+    .card .back { transform: rotateY(180deg); gap: 12px; }
+    .card .back .meaning { font: 16px/1.55 "Literata", Georgia, serif; }
+    .card .back .from { margin-top: auto; border: 1px solid var(--slate-200); border-radius: 12px; padding: 12px 14px; font-size: 13px; background: var(--slate-100); }
+    .card .back .from b { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--slate-400); margin-bottom: 6px; }
+    .card .back .from span { background: var(--hl); border-radius: 4px; padding: 0 4px; }
+    .flash-controls { display: flex; gap: 10px; margin-top: 26px; }
+
+    /* ===================================================== 5 make it yours */
+    .yours { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .panel { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 20px; }
+    .panel .label { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--slate-400); margin-bottom: 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips button { font: 500 13px/1 var(--sans); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--slate-200); background: var(--white); color: var(--slate-900); cursor: pointer; }
+    .chips button[aria-pressed="true"] { background: var(--slate-900); color: var(--white); border-color: var(--slate-900); }
+    .sample { margin: 14px 0 0; font: 17px/1.55 "Literata", Georgia, serif; min-height: 4.7em; }
+    .layout { position: relative; height: 170px; margin-top: 14px; }
+    .layout i { position: absolute; border-radius: 10px; background: var(--slate-100); box-shadow: inset 0 0 0 1px var(--slate-200); }
+    .layout i::after { content: attr(data-name); position: absolute; left: 10px; top: 8px; font: 500 10.5px/1 var(--mono); color: var(--slate-400); text-transform: uppercase; letter-spacing: .08em; }
+    .player { display: flex; align-items: center; gap: 22px; background: linear-gradient(135deg, var(--slate-900), var(--slate-950)); color: var(--white); overflow: hidden; position: relative; min-height: 0; }
+    .player .label { color: var(--slate-400); }
+    .record { width: 136px; height: 136px; flex: none; border-radius: 50%; position: relative; overflow: hidden; border: 0; padding: 0; cursor: pointer;
+      background: radial-gradient(circle, transparent 0 41%, rgba(255,255,255,.05) 41.5% 42%, transparent 42.5% 77%, rgba(30,215,96,.2) 77.5% 78%, transparent 78.5%), repeating-radial-gradient(circle, #151210 0 1.1px, #1e1a17 1.5px 2.4px), #151210;
+      box-shadow: 0 24px 50px -18px rgba(0, 0, 0, .8); }
+    .nota-label { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+    .record .grooves { position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle, transparent 0 2px, rgba(0, 0, 0, .1) 2.4px 2.8px), radial-gradient(circle, transparent 58%, rgba(0, 0, 0, .25)); }
+    .record .grooves::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 30deg, transparent 0 10%, rgba(255, 255, 255, .2) 15%, transparent 22% 55%, rgba(255, 255, 255, .12) 62%, transparent 70%); }
+    .player .now { font: 400 22px/1.2 var(--serif); margin: 4px 0 6px; }
+    .player p { color: var(--slate-400); margin: 0; font-size: 13.5px; max-width: 30ch; }
+    /* The plain-words calendar: a sentence typed, an event lands on its day. */
+    .cal-input { display: flex; align-items: center; gap: 6px; padding: 11px 13px; border-radius: 12px; background: var(--slate-100); font: 14px/1.3 var(--sans); min-height: 44px; }
+    .cal-input .slash { font: 500 13px/1 var(--mono); color: var(--brand); }
+    .cal-input .caret { width: 1.5px; height: 17px; background: var(--slate-900); animation: caret 1s steps(1) infinite; }
+    @keyframes caret { 50% { opacity: 0; } }
+    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 12px; }
+    .week .d { min-height: 82px; border-radius: 10px; background: var(--slate-100); padding: 6px 5px; display: flex; flex-direction: column; gap: 4px; }
+    .week .d b { font: 500 10px/1 var(--mono); color: var(--slate-400); text-transform: uppercase; }
+    .week .ev { font: 500 10.5px/1.25 var(--sans); color: var(--slate-900); background: var(--white); border-left: 3px solid var(--brand); border-radius: 5px; padding: 4px 5px; box-shadow: 0 1px 2px rgba(14, 23, 38, .08); }
+    .week .ev i { display: block; font-style: normal; color: var(--slate-400); font-size: 9.5px; }
+    .cal-demo .hint { margin: 10px 0 0; font-size: 13px; color: var(--slate-600); }
+    .player .embed { margin-top: 14px; border-radius: 12px; overflow: hidden; }
+    .player .embed:empty { display: none; }
+
+    /* ========================================================== 6 privacy
+       Light, like the rest of the page: your computer is a calm boundary
+       around your library. Files flow into Nota inside it; anything heading
+       out ripples off the edge; only the question goes to your AI provider. */
+    #yours { padding-bottom: 48px; }
+    .private { padding-top: 64px; padding-bottom: 72px; }
+    .download { padding-top: 48px; }
+    /* Just the network, straight on the page. */
+    .vault-card { position: relative; width: 100%; max-width: 620px; justify-self: end; }
+    .graph { width: 100%; height: auto; display: block; touch-action: none; user-select: none; overflow: visible; }
+    .graph .e { stroke: #cbd5e1; stroke-width: 1.1; transition: stroke .25s, opacity .25s; }
+    .graph .e.ai { stroke: #94a3b8; stroke-dasharray: 3 5; }
+    .graph .n { cursor: grab; transition: opacity .25s; }
+    .graph .n:active { cursor: grabbing; }
+    .graph .lbl { font: 500 11px var(--sans); fill: var(--slate-600); paint-order: stroke; stroke: rgba(255, 255, 255, .92); stroke-width: 3.5px; stroke-linejoin: round; pointer-events: none; }
+    .graph .n.hub .lbl { font: 600 13px var(--serif); fill: var(--slate-900); }
+    .graph .n.ai .lbl { font: 500 11px var(--mono); fill: var(--slate-900); }
+    .graph.focus .n:not(.hot), .graph.focus .e:not(.hot) { opacity: .16; }
+    .graph .e.hot { stroke: var(--brand); stroke-width: 1.6; }
+    .graph .n.hot .lbl { fill: var(--slate-900); }
+    .points { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; color: var(--slate-600); font-size: 15px; }
+    .points li::before { content: "✓"; color: var(--ready); font-weight: 600; margin-right: 10px; }
+
+    /* ========================================================= download */
+    .download { text-align: center; }
+    .download h2 { max-width: 18ch; margin-inline: auto; }
+    .download .cta { display: flex; justify-content: center; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+    .download .sub { max-width: 46ch; }
+    .zip-dl { margin: 16px 0 0; font-size: 13.5px; color: var(--slate-600); }
+    .zip-dl[hidden] { display: none; }
+    .dl-help { max-width: 640px; margin: 26px auto 0; text-align: left; background: var(--white); border: 1px solid var(--slate-200); border-radius: 16px; padding: 20px 24px; font-size: 14.5px; line-height: 1.6; }
+    .dl-help[hidden] { display: none; }
+    .dl-help .dl-title { margin: 0 0 10px; font-weight: 600; }
+    .dl-help .dl-title span { font-weight: 400; color: var(--slate-600); }
+    .dl-help ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+    .dl-help ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+    .dl-help code { font-family: var(--mono); font-size: 12.5px; background: var(--slate-100); border-radius: 4px; padding: 1px 4px; }
+    .dl-help .dl-alt { margin: 14px 0 0; color: var(--slate-600); font-size: 13.5px; }
+    .reqs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 24px; font-size: 13.5px; color: var(--slate-400); }
+    #faq { padding-top: 40px; }
+    .faq { max-width: 780px; margin-top: 28px; }
+    details { border-bottom: 1px solid var(--slate-200); padding: 18px 0; }
+    details summary { cursor: pointer; font-weight: 500; font-size: 16.5px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::after { content: "+"; color: var(--slate-400); font-size: 20px; line-height: 1; }
+    details[open] summary::after { content: "–"; }
+    details p { color: var(--slate-600); margin: 10px 0 0; max-width: 46em; }
+    footer { padding: 36px 0 60px; color: var(--slate-400); font-size: 13px; border-top: 1px solid var(--slate-200); }
+    footer .wrap { display: flex; gap: 20px; }
+
+    /* ======================================================= responsive */
+    @media (max-width: 900px) {
+      section { padding: 84px 0; }
+      .split, .hero .split, .scrub .split { grid-template-columns: 1fr; gap: 40px; }
+      nav .links { display: none; }
+      nav .btn.small { margin-left: auto; }
+      .appui { grid-template-columns: 1fr; min-height: 0; }
+      .appui .rail { display: none; }
+      .appui .ring { right: 10px; bottom: -40px; width: 92px; height: 92px; }
+      .appui .ring svg { width: 72px; height: 72px; }
+      .scrub { height: 260vh; }
+      .scrub .stage { align-items: flex-start; padding-top: 76px; overflow: hidden; }
+      .scrub .copy .sub, .scrub-steps { display: none; }
+      .duo { grid-template-columns: 1fr; gap: 14px; }
+      .doc .slide { aspect-ratio: auto; }
+      .yours { grid-template-columns: 1fr; }
+      .player { flex-direction: column; align-items: flex-start; }
+      .week .d { min-height: 64px; }
+      .record { width: 140px; height: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="nota-mark.svg" alt="" />Nota</a>
+      <div class="links"><a href="#readiness">Readiness</a><a href="#tutor">Tutor</a><a href="#flashcards">Flashcards</a><a href="#yours">Make it yours</a><a href="#private">Privacy</a><a href="#faq">FAQ</a></div>
+      <a class="btn small" href="#download">Download</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <!-- 1 · Hero -->
+    <header class="hero">
+      <div class="hero-light" aria-hidden="true"></div>
+      <div class="wrap split">
+        <div>
+          <h1 class="reveal">Study your own lectures, <em>with a tutor that read them.</em></h1>
+          <p class="lede reveal">Drop in your slides, notes and syllabus. Nota teaches every objective, shows the page each answer came from, and tells you how ready you are for each exam.</p>
+          <div class="cta reveal">
+            <a class="btn" href="#download">Download for Windows</a>
+            <a class="btn ghost" href="#readiness">See your readiness map</a>
+          </div>
+          <p class="fine reveal">Windows 10 or 11 · free AI key from Google or Groq</p>
+        </div>
+        <div class="appui reveal" id="appui" aria-label="Nota's tutor answering from a lecture, with a readiness ring">
+          <div class="rail"><i></i><i></i><i></i><i></i><i></i><i style="width:60%"></i></div>
+          <div class="main">
+            <div class="q">Why is an oral dose lower in the blood than IV?</div>
+            <div class="a">The liver clears part of an oral dose before it reaches the body: the <b>first-pass effect</b> <span class="cite">1</span>.</div>
+            <div class="a" style="opacity:.55">What's left is the bioavailability <span class="cite">2</span></div>
+          </div>
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--slate-100)" stroke-width="9" /><circle id="hero-ring" cx="50" cy="50" r="42" fill="none" stroke="var(--ready)" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 264" /></svg>
+            <b id="hero-pct">0%</b>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2 · Exam readiness -->
+    <section id="readiness">
+      <div class="wrap split">
+        <div>
+          <span class="kicker reveal">Exam readiness</span>
+          <h2 class="reveal">Know which objectives you'd lose marks on, weeks before the exam.</h2>
+          <p class="sub reveal">Every learning objective gets a colour, scored from what you've actually done: the cards you remember, the cases you answered, what the tutor marked. Click a square to see which one it is.</p>
+        </div>
+        <div class="ready-card reveal">
+          <div class="ready-head"><strong>Sample course · Midterm</strong><span id="ready-count">0 of 32 ready</span></div>
+          <div class="grid" id="grid" role="group" aria-label="Objectives, coloured by readiness"></div>
+          <div class="legend"><span><i style="background:var(--ready)"></i>Ready</span><span><i style="background:var(--getting)"></i>Getting there</span><span><i style="background:var(--risk)"></i>Shaky</span><span><i style="background:var(--none)"></i>Not started</span></div>
+          <p class="pick" id="pick" aria-live="polite">Click a square.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Tutor & citations (sticky, scroll-scrubbed) -->
+    <section class="scrub" id="tutor">
+      <div class="stage">
+        <div class="wrap split">
+          <div class="copy">
+            <span class="kicker">The tutor</span>
+            <h2>Every answer shows the page it came from.</h2>
+            <p class="sub">Nota only answers from your own files. Each claim carries a number; follow it to the exact line on the exact slide.</p>
+            <ol class="scrub-steps" id="steps">
+              <li data-step="0"><b>01</b>You ask; the tutor answers from your lecture</li>
+              <li data-step="1"><b>02</b>It finds the line on the slide</li>
+              <li data-step="2"><b>03</b>The citation takes you straight there</li>
+            </ol>
+          </div>
+          <div class="duo" id="duo">
+            <div class="chat">
+              <div class="label">Tutor</div>
+              <div class="bubble q" id="b-q">What is caseous necrosis?</div>
+              <div class="bubble" id="b-a">Cell death where the dead tissue turns soft and crumbly, like cheese. It's the classic sign of tuberculosis <span class="cite" id="cite">1</span>.</div>
+            </div>
+            <div class="doc">
+              <div class="label">Sample lecture · p. 8</div>
+              <div class="slide">
+                <h4>How cells die</h4>
+                <p>Coagulative: the tissue keeps its outline</p>
+                <p><span class="mark" id="mark">Caseous: soft, crumbly, "cheese-like"</span></p>
+                <p>Liquefactive: the tissue turns to fluid</p>
+                <p>Classic example of caseous: tuberculosis</p>
+              </div>
+              <div class="foot"><span>Sample course · Week 2</span><span>8</span></div>
+            </div>
+            <svg class="connector" id="connector" aria-hidden="true"><path id="link" d="" /><circle id="link-dot" r="4.5" cx="-20" cy="-20" /></svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Flashcards -->
+    <section id="flashcards">
+      <div class="wrap split">
+        <div>
+          <span class="kicker reveal">Practice that sticks</span>
+          <h2 class="reveal">Flashcards in plain words, with the slide they came from.</h2>
+          <p class="sub reveal">Cards are made lecture section by section. Turn one over and the slide behind it is right there. Hard cards come back in minutes, easy ones in days.</p>
+          <div class="flash-controls reveal"><button class="btn small" id="flip">Turn the card</button><button class="btn small ghost" id="next">Next card</button></div>
+        </div>
+        <div class="stack" id="stack" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- 5 · Make it yours -->
+    <section id="yours">
+      <div class="wrap">
+        <span class="kicker reveal">Make it yours</span>
+        <h2 class="reveal">A font you like, a layout that fits, music while you work.</h2>
+        <div class="yours" style="margin-top:44px">
+          <div class="panel reveal">
+            <div class="label">The tutor's font</div>
+            <div class="chips" id="fonts">
+              <button type="button" aria-pressed="true" data-font="Literata">Literata</button>
+              <button type="button" aria-pressed="false" data-font="Source Sans 3">Source Sans</button>
+              <button type="button" aria-pressed="false" data-font="Newsreader">Newsreader</button>
+            </div>
+            <p class="sample" id="sample">The first-pass effect: a drug absorbed from the gut passes through the liver first, so less of an oral dose arrives.</p>
+          </div>
+          <div class="panel reveal">
+            <div class="label">The side panel</div>
+            <div class="chips" id="layouts">
+              <button type="button" aria-pressed="true" data-layout="stack">Stacked</button>
+              <button type="button" aria-pressed="false" data-layout="side">Side by side</button>
+            </div>
+            <div class="layout" id="layout"><i data-name="Readiness"></i><i data-name="Calendar"></i><i data-name="To-do"></i></div>
+          </div>
+          <div class="panel player reveal" id="player">
+            <button type="button" class="record" id="record" aria-label="Play study music">
+              <svg class="nota-label" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#191414"/><path fill="#1ED760" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg><span class="grooves"></span>
+            </button>
+            <div>
+              <div class="label">Study music · Beta</div>
+              <div class="now" id="now">Deep Focus</div>
+              <p>A record in the corner of the app plays any Spotify playlist. Tap it to try.</p>
+              <div class="embed" id="embed"></div>
+            </div>
+          </div>
+          <div class="panel cal-demo reveal" id="cal-demo">
+            <div class="label">Your calendar, in plain words</div>
+            <div class="cal-input" aria-live="polite"><span class="slash">/calendar</span><span id="cal-typed"></span><i class="caret"></i></div>
+            <div class="week" id="week"></div>
+            <p class="hint">Type it the way you'd say it. Exams and deadlines from your syllabus arrive on their own.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 · Privacy -->
+    <section class="private" id="private">
+      <div class="wrap split">
+        <div>
+          <span class="kicker reveal">Private by design</span>
+          <h2 class="reveal">Your library lives on your computer.</h2>
+          <p class="sub reveal">Your lectures are read and indexed on your own machine. Only your question and the few passages it needs go to the AI provider you choose, with your own key. Nothing is uploaded to a Nota server, because there isn't one.</p>
+          <ul class="points reveal"><li>Files and notes stay in your own folder</li><li>No account, no sign-up, no tracking</li><li>Lectures, concepts, notes and cards, all linked on your machine</li><li>Only your question and a few passages go to the AI provider you pick</li></ul>
+        </div>
+        <div class="vault-card reveal">
+          <svg class="graph" id="graph" viewBox="0 0 600 440" role="img" aria-label="A map of your library: files, concepts, exams, notes and flashcards linked together, all on this computer; one dashed link goes out to your AI provider">
+            <g id="g-edges"></g>
+            <g id="g-pulses"></g>
+            <g id="g-nodes"></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section class="download" id="download">
+      <div class="wrap">
+        <span class="kicker reveal">Free for Windows</span>
+        <h2 class="reveal">Study your own lectures, starting tonight.</h2>
+        <p class="sub reveal" style="margin-inline:auto">Free. About a 280 MB download. Your study data stays on your computer.</p>
+        <div class="cta reveal"><a class="btn" id="download-link" href="https://github.com/aaronsu0105/nota/releases/latest/download/Nota-Setup.exe">Download Nota <span id="version"></span></a><a class="btn ghost" href="https://github.com/aaronsu0105/nota/releases/latest">All downloads</a></div>
+        <p class="zip-dl" id="zip-dl" hidden>Nothing in your downloads, or only a .tmp file? <a id="zip-link" href="https://github.com/aaronsu0105/nota/releases">Download as a .zip instead</a></p>
+        <div class="dl-help" id="dl-help" hidden role="status" aria-live="polite">
+          <p class="dl-title">Downloading Nota-Setup.exe <span>(about 280 MB, a few minutes)</span></p>
+          <ol>
+            <li><b>Your browser may hold it back.</b> Nota is new and not yet code-signed, so Edge or Chrome can say <i>“Nota-Setup.exe isn't commonly downloaded”</i>. Until you choose to keep it, the file stays as a temporary <code>.tmp</code> or <code>.crdownload</code> file, which isn't the installer yet.
+              <ul>
+                <li><b>Edge:</b> open the downloads list (Ctrl+J), hover the file, click <b>···</b> → <b>Keep</b> → <b>Show more</b> → <b>Keep anyway</b>.</li>
+                <li><b>Chrome:</b> open the downloads list (Ctrl+J) and click <b>Keep</b> (or <b>Download unverified file</b>).</li>
+              </ul>
+            </li>
+            <li><b>Nothing in the downloads list, only a <code>.tmp</code> file?</b> Something on this computer (an antivirus, a school or work laptop's rules) stopped the <code>.exe</code>. Use <b>Download as a .zip</b> above, then right-click the zip → <b>Extract All</b>, and open <b>Nota-Setup.exe</b> from the folder.</li>
+            <li><b>Open Nota-Setup.exe.</b> If Windows says <i>“Windows protected your PC”</i>, click <b>More info</b> → <b>Run anyway</b>. It installs to your user folder, with no administrator rights needed.</li>
+          </ol>
+          <p class="dl-alt">Didn't start? <a id="dl-direct" href="https://github.com/aaronsu0105/nota/releases/latest">Download it from the GitHub release page</a>.</p>
+        </div>
+        <div class="reqs"><span>Windows 10 / 11, 64-bit</span><span>8 GB RAM recommended</span><span>2 GB free disk space</span><span>Internet for AI answers</span></div>
+      </div>
+    </section>
+
+    <!-- Questions -->
+    <section id="faq">
+      <div class="wrap">
+        <span class="kicker reveal">Questions</span>
+        <h2 class="reveal">Good to know.</h2>
+        <div class="faq reveal">
+          <details><summary>Is Nota really free?</summary><p>Yes. Nota is free, and the AI providers it uses, Google Gemini, Groq and Cerebras, all have free tiers that cover normal studying. You make a key with your own account, so there's no bill from us.</p></details>
+          <details><summary>I only got a .tmp or .crdownload file. What happened?</summary><p>Something held the installer back, because Nota is new and not yet code-signed. Open the downloads list (<b>Ctrl+J</b>). If the file is there, keep it: in Edge, hover it and click <b>···</b> → <b>Keep</b> → <b>Show more</b> → <b>Keep anyway</b>; in Chrome, click <b>Keep</b>. If the list is empty, an antivirus or the computer's rules stopped the <code>.exe</code>: use <b>Download as a .zip</b> under the download button, right-click the zip → <b>Extract All</b>, and open Nota-Setup.exe. The temporary file on its own can be deleted.</p></details>
+          <details><summary>Windows says “Windows protected your PC”. Is it safe?</summary><p>Windows shows this for new apps that haven't built up a download reputation yet. Click <b>More info</b>, then <b>Run anyway</b>. The installer only puts Nota in your user folder and doesn't need administrator rights.</p></details>
+          <details><summary>What files can I add?</summary><p>PDFs (slides exported as PDF work well), Word documents (.docx), EPUB books, Markdown and plain text, web pages by link, and notes you paste in. Scanned PDFs with no text layer need the free Tesseract OCR installed.</p></details>
+          <details><summary>Does it work offline?</summary><p>Your library, reading, search and calendar all work offline. Answers, quizzes and skims need the internet, because they use the AI provider.</p></details>
+          <details><summary>Mac or Linux?</summary><p>Nota is Windows-only for now.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="wrap"><span>Nota</span><span>Study your own lectures.</span><span style="margin-left:auto">© 2026</span></div></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+  <script>
+  /* =========================================================================
+   * Nota — scroll-driven motion with anime.js
+   *
+   * Three kinds of motion, kept apart:
+   *   1. tweens       plain anime.js animations (load, loops, clicks)
+   *   2. onEnter      IntersectionObserver: play something once a block is seen
+   *   3. scrub        a paused anime.js timeline whose position follows the
+   *                   scroll position through a tall, sticky section
+   *
+   * Reduced motion (or no anime.js) shows every end state, still and readable.
+   * ========================================================================= */
+
+  /** IntersectionObserver threshold: the share of an element that must be on
+   *  screen before its animation starts. 0.25 = a quarter. Lower starts sooner,
+   *  higher waits until the block is well in view. */
+  const ENTER_THRESHOLD = 0.25;
+
+  /** Scroll-scrubbing speed. The timeline spans the scroll through the sticky
+   *  section, so its CSS height sets the speed: `.scrub { height: 320vh }` gives
+   *  2.2 screens of scrolling for the whole story. Raise it to play slower,
+   *  lower it to play faster. SCRUB_SMOOTHING eases the playhead toward the
+   *  scroll position each frame (1 = locked to the wheel, 0.1 = floaty). */
+  const SCRUB_SMOOTHING = 0.14;
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || typeof anime === 'undefined';
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+  if (reduced) document.documentElement.classList.add('no-motion');
+
+  /* ------------------------------------------------------------ utilities */
+
+  /** Run `play` once, the first time `el` is ENTER_THRESHOLD on screen. */
+  function onEnter(el, play, threshold = ENTER_THRESHOLD) {
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { io.disconnect(); play(entry.target); }
+      });
+    }, { threshold });
+    io.observe(el);
+  }
+
+  /** Call `cb(true|false)` whenever `el` comes into or leaves view (for loops). */
+  function whileVisible(el, cb) {
+    new IntersectionObserver(([entry]) => cb(entry.isIntersecting), { threshold: 0.15 }).observe(el);
+  }
+
+  /** An anime.js tween that walks an SVG circle along an SVG path, in the path's own units. */
+  function alongPath(dotEl, path, opts = {}) {
+    const len = path.getTotalLength();
+    const t = { v: 0 };
+    return {
+      targets: t, v: [0, 1], ...opts,
+      update: () => { const pt = path.getPointAtLength(t.v * len); dotEl.setAttribute('cx', pt.x); dotEl.setAttribute('cy', pt.y); },
+    };
+  }
+
+  /** Fade-and-rise for any `.reveal` blocks inside `root` (not the hero's). */
+  function revealIn(root) {
+    const items = $$('.reveal', root);
+    if (reduced) return;
+    anime({ targets: items, opacity: [0, 1], translateY: [24, 0], duration: 900, delay: anime.stagger(90), easing: 'easeOutExpo' });
+  }
+
+  /* ---------------------------------------------------------------- 1 hero */
+  function initHero() {
+    if (reduced) { $('#hero-ring').setAttribute('stroke-dasharray', '164 264'); $('#hero-pct').textContent = '62%'; return; }
+    // Text: staggered fade-and-slide on load.
+    anime({ targets: '.hero .reveal:not(.appui)', opacity: [0, 1], translateY: [28, 0], duration: 1100, delay: anime.stagger(110, { start: 150 }), easing: 'easeOutExpo' });
+    // The app: arrives, then floats forever.
+    anime({ targets: '#appui', opacity: [0, 1], translateY: [50, 0], duration: 1400, delay: 450, easing: 'easeOutExpo',
+      complete: () => anime({ targets: '#appui', translateY: [0, -12], duration: 3200, direction: 'alternate', loop: true, easing: 'easeInOutSine' }) });
+    // The readiness ring counts up.
+    const v = { n: 0 };
+    anime({ targets: v, n: 62, duration: 2000, delay: 1100, easing: 'easeOutCubic',
+      update: () => { $('#hero-ring').setAttribute('stroke-dasharray', `${(v.n / 100) * 264} 264`); $('#hero-pct').textContent = `${Math.round(v.n)}%`; } });
+    anime({ targets: '.appui .cite', scale: [0, 1], duration: 900, delay: anime.stagger(200, { start: 1500 }), easing: 'spring(1, 90, 10, 0)' });
+  }
+
+  /* ----------------------------------------------------------- 2 readiness */
+  const OBJECTIVES = [
+    // [status, sample objective] — sample content written for this page.
+    ...['Define Km and Vmax', 'Read a saturation curve', 'Name the four tissue types', 'Describe a cell membrane', 'List the stages of mitosis', 'Explain osmosis', 'Define homeostasis', 'Name the parts of a neuron', 'Describe diffusion', 'Label a nephron', 'Define pH'].map((o) => ['ready', o]),
+    ...['Explain enzyme inhibition', 'Compare the two immune responses', 'Describe the cardiac cycle', 'Explain feedback loops', 'Trace the path of oxygen', 'Explain the action potential', 'Describe glycolysis', 'Compare mitosis and meiosis', 'Explain buffering'].map((o) => ['getting', o]),
+    ...['Predict an inhibitor’s effect', 'Calculate the net ATP yield', 'Interpret an ECG trace', 'Explain the Frank–Starling law', 'Compare necrosis and apoptosis', 'Explain renal clearance'].map((o) => ['risk', o]),
+    ...['Explain why the Krebs cycle needs oxygen', 'Describe hormone signalling', 'Explain antibody classes', 'Describe the clotting cascade', 'Explain countercurrent exchange', 'Compare the two nervous systems'].map((o) => ['none', o]),
+  ];
+  const COLOR = { ready: 'var(--ready)', getting: 'var(--getting)', risk: 'var(--risk)', none: 'var(--none)' };
+  const LABEL = { ready: 'Ready', getting: 'Getting there', risk: 'Shaky: practise a case', none: 'Not started: /teach walks you through it' };
+
+  function initReadiness() {
+    const grid = $('#grid');
+    // Shuffle once, the same way each visit, so colours mix like a real course.
+    const order = OBJECTIVES.map((o, i) => [o, (i * 37) % OBJECTIVES.length]).sort((a, b) => a[1] - b[1]).map(([o]) => o);
+    order.forEach(([status, objective]) => {
+      const sq = document.createElement('button');
+      sq.className = 'sq'; sq.type = 'button'; sq.dataset.status = status; sq.setAttribute('aria-label', `${objective}: ${LABEL[status]}`);
+      sq.addEventListener('click', () => {
+        $('#pick').textContent = `${objective} · ${LABEL[status]}`;
+        if (!reduced) anime({ targets: sq, scale: [1.35, 1], duration: 800, easing: 'spring(1, 120, 8, 0)' });
+      });
+      grid.append(sq);
+    });
+    const squares = $$('.sq', grid);
+    const ready = squares.filter((s) => s.dataset.status === 'ready').length;
+    if (reduced) {
+      squares.forEach((s) => (s.style.background = COLOR[s.dataset.status]));
+      $('#ready-count').textContent = `${ready} of ${squares.length} ready`;
+      return;
+    }
+    onEnter($('#readiness'), (section) => {
+      revealIn(section);
+      // Pop in from the centre, one by one, on a spring; then light up in its colour.
+      anime.timeline()
+        .add({ targets: squares, scale: [0, 1], duration: 1100, delay: anime.stagger(28, { grid: [8, 4], from: 'center' }), easing: 'spring(1, 80, 10, 0)' }, 300)
+        .add({ targets: squares, backgroundColor: (el) => getComputedStyle(document.documentElement).getPropertyValue(`--${el.dataset.status}`).trim(), duration: 500, delay: anime.stagger(28, { grid: [8, 4], from: 'center' }), easing: 'easeOutQuad' }, 650);
+      const n = { v: 0 };
+      anime({ targets: n, v: ready, round: 1, duration: 1400, delay: 700, easing: 'easeOutCubic', update: () => ($('#ready-count').textContent = `${n.v} of ${squares.length} ready`) });
+    });
+  }
+
+  /* ---------------------------------------------- 3 tutor (scroll-scrubbed) */
+  function initScrub() {
+    const section = $('#tutor');
+    const duo = $('#duo');
+    const link = $('#link');
+    const dot = $('#link-dot');
+    const steps = $$('#steps li');
+    let tl = null;
+
+    /** The connector: from the citation number to the highlighted line, recomputed on resize. */
+    function drawConnector() {
+      // Measure the bubble where it ends up, not where the animation has it now.
+      const bubble = $('#b-a');
+      const held = bubble.style.transform;
+      bubble.style.transform = 'none';
+      const box = duo.getBoundingClientRect();
+      const a = $('#cite').getBoundingClientRect();
+      bubble.style.transform = held;
+      const b = $('#mark').getBoundingClientRect();
+      const x1 = a.left + a.width / 2 - box.left, y1 = a.top + a.height / 2 - box.top;
+      const x2 = b.left - box.left - 8, y2 = b.top + b.height / 2 - box.top;
+      const stacked = b.top > a.bottom + 40; // phones: the slide sits under the chat
+      const xm = b.left + Math.min(b.width / 2, 90) - box.left, yt = b.top - box.top - 4;
+      const c = stacked
+        ? `M${x1} ${y1 + 9} C ${x1} ${y1 + 70}, ${xm} ${yt - 70}, ${xm} ${yt}` // straight down to the top of the line
+        : `M${x1} ${y1 + 9} C ${x1 + 10} ${y1 + 110}, ${x2 - 110} ${y2 + 90}, ${x2} ${y2}`; // dips under the bubble, rises to the line
+      link.setAttribute('d', c);
+    }
+
+    /** The story as one paused timeline; the scroll position seeks through it. */
+    function build() {
+      const at = tl ? tl.progress : 0;
+      drawConnector();
+      if (reduced) {
+        $$('.bubble').forEach((b) => { b.style.opacity = 1; b.style.transform = 'none'; });
+        $('#mark').style.setProperty('--hl-scale', 1);
+        steps.forEach((s) => s.classList.add('on'));
+        return;
+      }
+      const hl = { s: 0 };
+      tl = anime.timeline({ autoplay: false, easing: 'easeInOutSine' })
+        // Step 1: the question, then the answer bubble slides in.
+        .add({ targets: '#b-q', opacity: [0, 1], translateX: [30, 0], duration: 500 })
+        .add({ targets: '#b-a', opacity: [0, 1], translateX: [-30, 0], duration: 700 })
+        // Step 2: the line on the slide lights up.
+        .add({ targets: hl, s: [0, 1], duration: 700, update: () => $('#mark').style.setProperty('--hl-scale', hl.s) }, '+=200')
+        // Step 3: a line draws itself from the citation to that line; a dot rides its tip.
+        .add({ targets: link, strokeDashoffset: [anime.setDashoffset, 0], duration: 1100 }, '+=150')
+        .add(alongPath(dot, link, { duration: 1100 }), '-=1100')
+        .add({ targets: '#cite', scale: [1, 1.35, 1], duration: 500 }, '-=1200')
+        .add({ duration: 300 }); // a held beat at the end
+      tl.seek(tl.duration * at);
+    }
+
+    let target = 0, shown = 0;
+    function onScroll() {
+      const rect = section.getBoundingClientRect();
+      const span = section.offsetHeight - innerHeight;        // how far the stage stays stuck
+      target = Math.min(1, Math.max(0, -rect.top / span));     // 0 → 1 through the section
+    }
+    function frame() {
+      shown += (target - shown) * SCRUB_SMOOTHING;
+      if (tl && Math.abs(target - shown) > 0.0005) {
+        tl.seek(tl.duration * shown);
+        steps.forEach((s, i) => s.classList.toggle('on', shown > [0.02, 0.42, 0.62][i]));
+      }
+      requestAnimationFrame(frame);
+    }
+    build();
+    document.fonts?.ready.then(() => { if (!reduced) anime.remove([link, dot]); build(); });
+    addEventListener('resize', () => { if (!reduced) anime.remove([link, dot]); build(); });
+    if (reduced) return;
+    addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------------------------------------------------- 4 flashcards */
+  const CARDS = [
+    { term: 'Caseous necrosis', meaning: 'Cell death where the dead tissue turns soft and crumbly, like cheese. The classic sign of tuberculosis.', from: 'Caseous: soft, crumbly, "cheese-like"', page: 8 },
+    { term: 'Atrophy', meaning: 'A tissue or organ shrinks because its cells get smaller, such as a muscle that goes unused.', from: 'Cells get smaller, so the organ shrinks', page: 3 },
+    { term: 'First-pass effect', meaning: 'The liver clears part of an oral dose before it reaches the body, so less of it arrives.', from: 'Gut → portal vein → liver → body', page: 6 },
+    { term: 'Homeostasis', meaning: 'The body keeping its inside conditions steady, like temperature and blood sugar, despite changes outside.', from: 'Feedback keeps conditions in a narrow range', page: 2 },
+  ];
+
+  function initFlashcards() {
+    const stack = $('#stack');
+    let i = 0;
+    let busy = false;
+    let auto = null;
+
+    const make = (card) => {
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `<div class="face front"><span class="term">${card.term}</span><span class="hint">Click to turn</span></div>
+        <div class="face back"><span class="term" style="font:500 20px/1.2 var(--serif)">${card.term}</span><span class="meaning">${card.meaning}</span>
+        <div class="from"><b>Sample lecture · p. ${card.page}</b><span>${card.from}</span></div></div>`;
+      el.addEventListener('click', () => (el.dataset.turned ? next() : flip()));
+      return el;
+    };
+    /** Lay the stack out: the top card flat, the rest fanned behind it. */
+    const layout = (animate) => {
+      $$('.card', stack).forEach((el, depth) => {
+        const to = { translateY: depth * 14, scale: 1 - depth * 0.05, opacity: depth > 2 ? 0 : 1 };
+        el.style.zIndex = String(10 - depth);
+        if (animate && !reduced) anime({ targets: el, ...to, duration: 600, easing: 'easeOutExpo' });
+        else anime.set(el, to);
+      });
+    };
+    CARDS.forEach((card) => stack.append(make(card)));
+    layout(false);
+
+    const top = () => $('.card', stack);
+    /** 3D flip on the Y axis, showing the slide it came from. */
+    function flip() {
+      const el = top();
+      if (busy || !el || el.dataset.turned) return;
+      el.dataset.turned = '1';
+      if (reduced) { el.style.transform = 'rotateY(180deg)'; return; }
+      busy = true;
+      anime({ targets: el, rotateY: [0, 180], duration: 900, easing: 'easeInOutCubic', complete: () => (busy = false) });
+    }
+    /** Swipe the top card away; the next one comes forward; the old one rejoins the back. */
+    function next() {
+      const el = top();
+      if (busy || !el) return;
+      busy = true;
+      const done = () => {
+        i += 1;
+        el.remove();
+        delete el.dataset.turned;
+        const fresh = make(CARDS[(i + 3) % CARDS.length]);
+        stack.append(fresh);
+        layout(true);
+        busy = false;
+      };
+      if (reduced) return done();
+      anime({ targets: el, translateX: ['0%', '130%'], translateY: [0, -40], rotate: [0, 16], opacity: [1, 0], duration: 650, easing: 'easeInCubic', complete: done });
+    }
+    $('#flip').addEventListener('click', flip);
+    $('#next').addEventListener('click', next);
+
+    // While the section is on screen, it demonstrates itself: turn, pause, swipe.
+    onEnter($('#flashcards'), (section) => revealIn(section));
+    if (reduced) return;
+    whileVisible($('#flashcards'), (on) => {
+      clearInterval(auto);
+      if (!on) return;
+      setTimeout(flip, 900);
+      auto = setInterval(() => (top()?.dataset.turned ? next() : flip()), 2600);
+    });
+    stack.addEventListener('pointerenter', () => clearInterval(auto)); // a hand on the cards takes over
+  }
+
+  /* ------------------------------------------------------- 5 make it yours */
+  const SPOTS = {
+    // Where each block sits, as % of the box: [left, top, width, height].
+    stack: [[0, 0, 100, 38], [0, 42, 100, 27], [0, 73, 100, 27]],
+    side: [[0, 0, 48.5, 100], [51.5, 0, 48.5, 48], [51.5, 52, 48.5, 48]],
+  };
+  function initYours() {
+    const sample = $('#sample');
+    $('#fonts').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      $$('#fonts button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      if (reduced) { sample.style.fontFamily = `"${b.dataset.font}", Georgia, serif`; return; }
+      anime({ targets: sample, opacity: [1, 0], translateY: [0, -6], duration: 180, easing: 'easeInQuad', complete: () => {
+        sample.style.fontFamily = `"${b.dataset.font}", Georgia, serif`;
+        anime({ targets: sample, opacity: [0, 1], translateY: [6, 0], duration: 320, easing: 'easeOutQuad' });
+      } });
+    });
+
+    // Layout: the blocks slide and reshape between stacked and side by side.
+    const blocks = $$('#layout i');
+    let mode = 'stack';
+    const place = (to, animate = true) => {
+      mode = to;
+      $$('#layouts button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.layout === to)));
+      blocks.forEach((el, k) => {
+        const [l, t, w, h] = SPOTS[to][k];
+        const css = { left: `${l}%`, top: `${t}%`, width: `${w}%`, height: `${h}%` };
+        if (!animate || reduced) Object.assign(el.style, css);
+        else anime({ targets: el, ...css, duration: 900, delay: k * 70, easing: 'spring(1, 90, 14, 0)' });
+      });
+    };
+    place('stack', false);
+    let demo = null;
+    $('#layouts').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      clearInterval(demo);
+      place(b.dataset.layout);
+    });
+
+    // The record rolls in from the right edge, then spins for as long as you like.
+    const record = $('#record');
+    let spin = null;
+    onEnter($('#yours'), (section) => {
+      revealIn(section);
+      if (reduced) return;
+      demo = setInterval(() => place(mode === 'stack' ? 'side' : 'stack'), 2800);
+      const from = innerWidth - record.getBoundingClientRect().left;
+      const turns = from / (Math.PI * record.offsetWidth); // a real roll: distance ÷ circumference
+      anime({ targets: record, translateX: [from, 0], rotate: [`${turns}turn`, 0], duration: 1700, delay: 400, easing: 'easeOutCubic',
+        complete: () => { spin = anime({ targets: record, rotate: '1turn', duration: 3600, loop: true, easing: 'linear' }); } });
+    }, 0.35);
+
+    // Tap the record: the real thing, Spotify's free embed (loaded only on request).
+    let controller = null;
+    record.addEventListener('click', () => {
+      if (controller) return controller.togglePlay();
+      window.onSpotifyIframeApiReady = (api) => {
+        const mount = document.createElement('div');
+        $('#embed').append(mount);
+        api.createController(mount, { uri: 'spotify:playlist:37i9dQZF1DWZeKCadgRdKQ', width: '100%', height: 80 }, (c) => {
+          controller = c;
+          c.addListener('ready', () => c.play());
+          c.addListener('playback_update', (ev) => {
+            const playing = !ev.data.isPaused;
+            record.setAttribute('aria-label', playing ? 'Pause study music' : 'Play study music');
+          });
+        });
+      };
+      const s = document.createElement('script');
+      s.src = 'https://open.spotify.com/embed/iframe-api/v1';
+      document.body.append(s);
+    });
+  }
+
+  /* --------------------------------------------- 5b the plain-words calendar */
+  const SAYINGS = [
+    { text: 'quiz 4 friday at 2pm', day: 4, title: 'Quiz 4', time: '2:00 pm' },
+    { text: 'lab report due tuesday 11:59pm', day: 1, title: 'Lab report due', time: '11:59 pm' },
+    { text: 'study group wednesday 4 to 6', day: 2, title: 'Study group', time: '4–6 pm' },
+  ];
+  function initCalendarDemo() {
+    const week = $('#week');
+    const typed = $('#cal-typed');
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    days.forEach((d, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'd';
+      cell.innerHTML = `<b>${d}</b>`;
+      if (i === 0) cell.insertAdjacentHTML('beforeend', '<span class="ev" style="border-left-color:var(--ready)">Lecture<i>10:30</i></span>');
+      if (i === 3) cell.insertAdjacentHTML('beforeend', '<span class="ev" style="border-left-color:var(--getting)">Reading<i>ch. 4</i></span>');
+      week.append(cell);
+    });
+    const cells = [...week.children];
+    if (reduced) {
+      typed.textContent = SAYINGS[0].text;
+      cells[4].insertAdjacentHTML('beforeend', '<span class="ev">Quiz 4<i>2:00 pm</i></span>');
+      return;
+    }
+    let n = 0;
+    let running = false;
+    let timer = null;
+    const say = () => {
+      const s = SAYINGS[n++ % SAYINGS.length];
+      typed.textContent = '';
+      let i = 0;
+      timer = setInterval(() => {
+        typed.textContent = s.text.slice(0, ++i);
+        if (i < s.text.length) return;
+        clearInterval(timer);
+        // The event lands on its day with a little spring.
+        const ev = document.createElement('span');
+        ev.className = 'ev';
+        ev.innerHTML = `${s.title}<i>${s.time}</i>`;
+        cells[s.day].append(ev);
+        anime({ targets: ev, scale: [0.4, 1], opacity: [0, 1], translateY: [-24, 0], duration: 900, easing: 'spring(1, 90, 11, 0)' });
+        anime({ targets: cells[s.day], backgroundColor: ['#fde8df', '#f1f5f9'], duration: 1400, easing: 'easeOutQuad' });
+        timer = setTimeout(() => {
+          anime({ targets: ev, opacity: 0, scale: 0.8, duration: 350, easing: 'easeInQuad', complete: () => ev.remove() });
+          if (running) timer = setTimeout(say, 500);
+        }, 2600);
+      }, 55);
+    };
+    whileVisible($('#cal-demo'), (on) => {
+      running = on;
+      clearInterval(timer); clearTimeout(timer);
+      if (on) say();
+    });
+  }
+
+  /* ------------------------------------------------------------- 6 privacy
+     An Obsidian-style map of the library: files, the concepts read out of
+     them, exams, notes and flashcards, linked and gently drifting, all inside
+     "this computer". Hover a node to light up what it connects to; drag one
+     to pull the web around. Pulses run along the links as Nota reads; now and
+     then a question takes the one dashed link out to your AI provider. */
+  const GRAPH = {
+    nodes: [
+      ['nota', 'Nota', 'hub'],
+      ['d1', 'Cell injury.pdf', 'doc', '#d95d39'], ['d2', 'Week 4 notes', 'doc', '#2f9e6b'],
+      ['d3', 'Course outline', 'doc', '#e0a63a'], ['d4', 'Lecture 5 recording', 'doc', '#6b7fd7'],
+      ['c1', 'Necrosis', 'concept'], ['c2', 'Apoptosis', 'concept'], ['c3', 'Inflammation', 'concept'],
+      ['c4', 'Cell adaptation', 'concept'], ['c5', 'First-pass effect', 'concept'], ['c6', 'Bioavailability', 'concept'],
+      ['c7', 'Clearance', 'concept'], ['c8', 'Half-life', 'concept'],
+      ['e1', 'Midterm', 'exam'], ['e2', 'Quiz 4', 'exam'],
+      ['n1', 'My notes', 'note'],
+      ['f1', '', 'card'], ['f2', '', 'card'], ['f3', '', 'card'], ['f4', '', 'card'], ['f5', '', 'card'],
+      ['f6', '', 'card'], ['f7', '', 'card'], ['f8', '', 'card'], ['f9', '', 'card'], ['f10', '', 'card'],
+      ['ai', 'AI provider', 'ai'],
+    ],
+    edges: [
+      ['nota', 'd1'], ['nota', 'd2'], ['nota', 'd3'], ['nota', 'd4'], ['nota', 'n1'],
+      ['d1', 'c1'], ['d1', 'c2'], ['d1', 'c3'], ['d1', 'c4'], ['d2', 'c5'], ['d2', 'c6'], ['d2', 'c3'], ['d4', 'c7'], ['d4', 'c8'], ['d4', 'c6'],
+      ['c1', 'c2'], ['c1', 'c3'], ['c5', 'c6'], ['c6', 'c7'], ['c7', 'c8'], ['c4', 'c2'],
+      ['d3', 'e1'], ['d3', 'e2'], ['e1', 'c1'], ['e1', 'c3'], ['e1', 'c5'], ['e2', 'c6'], ['e2', 'c8'],
+      ['n1', 'c1'], ['n1', 'c5'],
+      ['f1', 'c1'], ['f2', 'c2'], ['f3', 'c3'], ['f4', 'c5'], ['f5', 'c6'], ['f6', 'c7'], ['f7', 'c4'], ['f8', 'c8'], ['f9', 'c3'], ['f10', 'c1'],
+      ['nota', 'ai'],
+    ],
+  };
+  const SIZE = { hub: 15, doc: 9, concept: 7, exam: 7.5, note: 7, card: 3.6, ai: 9 };
+  const FILL = { hub: '#d95d39', concept: '#64748b', exam: '#d64545', note: '#2f9e6b', card: '#cbd5e1', ai: '#142033' };
+  const REST = { hub: 92, doc: 74, concept: 64, exam: 70, note: 70, card: 30, ai: 0 };
+  const BOX = { x0: 22, y0: 22, x1: 470, y1: 418 }; // "this computer"
+  const AI_AT = { x: 536, y: 112 };
+
+  function initPrivacy() {
+    const svg = $('#graph');
+    const NS = 'http://www.w3.org/2000/svg';
+    const make = (tag, attrs, parent) => {
+      const el = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      parent.append(el);
+      return el;
+    };
+    const edgesG = $('#g-edges'), pulseG = $('#g-pulses'), nodesG = $('#g-nodes');
+    const nodes = GRAPH.nodes.map(([id, label, type, color], i) => {
+      const a = (i / GRAPH.nodes.length) * Math.PI * 2;
+      const n = { id, label, type, r: SIZE[type], x: 246 + Math.cos(a) * (60 + (i % 5) * 26), y: 220 + Math.sin(a) * (60 + (i % 4) * 24), vx: 0, vy: 0,
+        fixed: type === 'ai', phase: Math.random() * Math.PI * 2, links: new Set() };
+      if (type === 'hub') { n.x = 246; n.y = 220; }
+      if (type === 'ai') { n.x = AI_AT.x; n.y = AI_AT.y; }
+      n.g = make('g', { class: `n ${type}` }, nodesG);
+      n.dot = make('circle', { r: reduced ? n.r : 0, fill: color ?? FILL[type] }, n.g);
+      if (type === 'hub') make('circle', { r: n.r + 6, fill: 'none', stroke: '#d95d39', 'stroke-opacity': 0.25, 'stroke-width': 2, class: 'halo' }, n.g);
+      if (label) {
+        const t = make('text', type === 'ai' ? { class: 'lbl', x: 0, y: n.r + 16, 'text-anchor': 'middle' } : { class: 'lbl', x: n.r + 5, y: 4 }, n.g);
+        t.textContent = label;
+        n.text = t;
+      }
+      return n;
+    });
+    const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+    const edges = GRAPH.edges.map(([a, b]) => {
+      const e = { a: byId[a], b: byId[b], ai: a === 'ai' || b === 'ai' };
+      e.a.links.add(e.b); e.b.links.add(e.a);
+      e.el = make('line', { class: `e${e.ai ? ' ai' : ''}` }, edgesG);
+      e.rest = e.ai ? 0 : (REST[e.a.type === 'card' || e.b.type === 'card' ? 'card' : e.b.type] ?? 64);
+      return e;
+    });
+
+    /* A small force layout: nodes push apart, links pull together, all held
+       inside the computer; a slow sway keeps the web alive. */
+    let hot = null, drag = null, energy = 1, mouse = null;
+    const step = (t) => {
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        if (a.fixed) continue;
+        for (let j = 0; j < nodes.length; j++) {
+          if (i === j || nodes[j].type === 'ai') continue;
+          const b = nodes[j];
+          let dx = a.x - b.x, dy = a.y - b.y;
+          const d2 = Math.max(dx * dx + dy * dy, 30);
+          const push = (a.type === 'card' ? 120 : 520) / d2;
+          a.vx += dx * push * 0.05; a.vy += dy * push * 0.05;
+        }
+        const pull = a.type === 'hub' ? 0.05 : 0.0055;
+        a.vx += (246 - a.x) * pull; a.vy += (222 - a.y) * pull;
+        if (mouse && !drag && a !== hot) {
+          // The cursor parts the web as it moves through: nearby nodes drift away from it.
+          const mx = a.x - mouse.x, my = a.y - mouse.y;
+          const md = Math.hypot(mx, my);
+          if (md < 95 && md > 0.1) { const k = (1 - md / 95) * 1.1; a.vx += (mx / md) * k; a.vy += (my / md) * k; }
+        }
+        a.vx += Math.cos(t / 1800 + a.phase) * 0.018; a.vy += Math.sin(t / 2100 + a.phase) * 0.018;
+      }
+      edges.forEach((e) => {
+        if (e.ai) return;
+        const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const f = (d - e.rest) * 0.012;
+        const fx = (dx / d) * f, fy = (dy / d) * f;
+        if (!e.a.fixed) { e.a.vx += fx; e.a.vy += fy; }
+        if (!e.b.fixed) { e.b.vx -= fx; e.b.vy -= fy; }
+      });
+      nodes.forEach((n) => {
+        if (n.fixed) return;
+        n.vx *= 0.82; n.vy *= 0.82;
+        n.x = Math.min(BOX.x1 - 18, Math.max(BOX.x0 + 14, n.x + n.vx * energy));
+        n.y = Math.min(BOX.y1 - 12, Math.max(BOX.y0 + 22, n.y + n.vy * energy));
+      });
+    };
+    const draw = () => {
+      nodes.forEach((n) => n.g.setAttribute('transform', `translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`));
+      edges.forEach((e) => {
+        e.el.setAttribute('x1', e.a.x.toFixed(1)); e.el.setAttribute('y1', e.a.y.toFixed(1));
+        e.el.setAttribute('x2', e.b.x.toFixed(1)); e.el.setAttribute('y2', e.b.y.toFixed(1));
+      });
+    };
+    // Settle before anyone sees it, so it opens as a web, not a scramble.
+    for (let k = 0; k < 260; k++) step(k * 16);
+    draw();
+
+    // Hover: the node and everything it links to light up; the rest steps back.
+    const focus = (n) => {
+      hot = n;
+      svg.classList.toggle('focus', Boolean(n));
+      nodes.forEach((m) => m.g.classList.toggle('hot', Boolean(n) && (m === n || n.links.has(m))));
+      edges.forEach((e) => e.el.classList.toggle('hot', Boolean(n) && (e.a === n || e.b === n)));
+    };
+    nodes.forEach((n) => {
+      n.g.addEventListener('pointerenter', () => !drag && focus(n));
+      n.g.addEventListener('pointerleave', () => !drag && focus(null));
+      n.g.addEventListener('pointerdown', (event) => {
+        if (n.type === 'ai') return;
+        drag = n; n.fixed = true; n.g.setPointerCapture(event.pointerId); focus(n);
+      });
+    });
+    const toSvg = (event) => {
+      const pt = svg.createSVGPoint(); pt.x = event.clientX; pt.y = event.clientY;
+      return pt.matrixTransform(svg.getScreenCTM().inverse());
+    };
+    svg.addEventListener('pointerleave', () => (mouse = null));
+    svg.addEventListener('pointermove', (event) => {
+      mouse = toSvg(event);
+      if (!drag) return;
+      const p = mouse;
+      drag.x = Math.min(BOX.x1 - 18, Math.max(BOX.x0 + 14, p.x)); drag.y = Math.min(BOX.y1 - 12, Math.max(BOX.y0 + 22, p.y));
+    });
+    addEventListener('pointerup', () => { if (drag) { drag.fixed = false; drag = null; focus(null); } });
+    if (reduced) return;
+
+    /* Pulses: a bright dot runs along a link as Nota reads; the question
+       takes the dashed link out and an answer comes back. */
+    const pulses = [];
+    const pulse = (e, color = '#d95d39', r = 2.6, back = false, ms = 900) =>
+      pulses.push({ e, back, t0: performance.now(), ms, el: make('circle', { r, fill: color }, pulseG) });
+    const ask = () => {
+      const e = edges.find((x) => x.ai);
+      pulse(e, '#142033', 4.2, false, 1300);
+      setTimeout(() => pulse(e, '#2f9e6b', 4.2, true, 1200), 1350);
+      anime({ targets: byId.ai.dot, r: [SIZE.ai, SIZE.ai + 4, SIZE.ai], duration: 700, delay: 1250, easing: 'easeOutQuad' });
+    };
+
+    let alive = false, timers = [];
+    const frame = (t) => {
+      if (alive) {
+        step(t);
+        draw();
+        for (let k = pulses.length - 1; k >= 0; k--) {
+          const p = pulses[k];
+          let u = (t - p.t0) / p.ms;
+          if (u >= 1) { p.el.remove(); pulses.splice(k, 1); continue; }
+          if (p.back) u = 1 - u;
+          const a = p.e.a.type === 'ai' ? p.e.b : p.e.a, b = p.e.a.type === 'ai' ? p.e.a : p.e.b;
+          p.el.setAttribute('cx', a.x + (b.x - a.x) * u); p.el.setAttribute('cy', a.y + (b.y - a.y) * u);
+        }
+      }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+
+    // Entrance: the hub, then files, concepts and cards bloom out; the links draw in after.
+    onEnter($('#private'), (section) => {
+      revealIn(section);
+      const order = ['hub', 'doc', 'concept', 'exam', 'note', 'card', 'ai'];
+      const sorted = [...nodes].sort((x, y) => order.indexOf(x.type) - order.indexOf(y.type));
+      anime({ targets: sorted.map((n) => n.dot), r: (el, i) => [0, sorted[i].r], duration: 900, delay: anime.stagger(45, { start: 250 }), easing: 'spring(1, 90, 10, 0)' });
+      anime({ targets: sorted.filter((n) => n.text).map((n) => n.text), opacity: [0, 1], duration: 600, delay: anime.stagger(45, { start: 500 }), easing: 'easeOutQuad' });
+      anime({ targets: edges.map((e) => e.el), opacity: [0, 1], duration: 700, delay: anime.stagger(22, { start: 700 }), easing: 'easeOutQuad' });
+      anime({ targets: '#graph .halo', r: [SIZE.hub + 4, SIZE.hub + 14], opacity: [0.6, 0], duration: 1800, loop: true, easing: 'easeOutQuad' });
+    }, 0.25);
+    whileVisible(svg, (on) => {
+      alive = on;
+      timers.forEach(clearInterval); timers = [];
+      if (!on) return;
+      timers.push(setInterval(() => {
+        const e = edges.filter((x) => !x.ai)[Math.floor(Math.random() * (edges.length - 1))];
+        pulse(e, '#d95d39', 2.6, Math.random() < 0.5);
+      }, 280));
+      timers.push(setInterval(ask, 4200));
+      setTimeout(ask, 1600);
+    });
+  }
+
+  /* ---------------------------------------------------------------- the rest */
+  /* ------------------------------------------------------------ download
+     Always the newest release: every release uploads the installer again as
+     Nota-Setup.exe, so the link never changes, and the version is read from
+     GitHub. Clicking opens the guide, because browsers hold back unsigned
+     installers as a .tmp file until the student chooses to keep them. */
+  function initDownload() {
+    const REPO = 'aaronsu0105/nota';
+    fetch(`https://api.github.com/repos/${REPO}/releases?per_page=10`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((releases) => {
+        const zip = releases.filter((r) => !r.draft).flatMap((r) => r.assets).find((a) => a.name === 'Nota-Setup.zip');
+        if (!zip) return;
+        $('#zip-link').href = zip.browser_download_url;
+        $('#zip-dl').hidden = false;
+      })
+      .catch(() => {});
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((release) => { if (release?.tag_name) $('#version').textContent = release.tag_name.replace(/^v/, ''); })
+      .catch(() => {});
+    $('#download-link').addEventListener('click', () => {
+      const help = $('#dl-help');
+      help.hidden = false;
+      setTimeout(() => help.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+    });
+  }
+
+  function initRest() {
+    const nav = $('#nav');
+    addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+    onEnter($('#download'), (section) => revealIn(section));
+    onEnter($('#faq'), (section) => revealIn(section));
+  }
+
+  initHero();
+  initReadiness();
+  initScrub();
+  initFlashcards();
+  initYours();
+  initCalendarDemo();
+  initPrivacy();
+  initDownload();
+  initRest();
+  </script>
+</body>
+</html>
