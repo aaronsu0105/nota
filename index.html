@@ -1,0 +1,1580 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nota — study your own lectures</title>
+  <meta name="description" content="Nota is a free Windows study app: a tutor that reads your own lectures, cites the slide behind every answer, maps your exam readiness and makes flashcards. Your files stay on your computer." />
+  <meta property="og:title" content="Nota — study your own lectures" />
+  <meta property="og:description" content="A tutor that reads your own lectures, cites the slide behind every answer, maps your exam readiness and makes flashcards. Free for Windows." />
+  <meta property="og:image" content="nota-512.png" />
+  <meta name="theme-color" content="#d95d39" />
+  <link rel="icon" type="image/svg+xml" href="nota-mark.svg" />
+  <link rel="apple-touch-icon" href="nota-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Geist:wght@400;500;600&family=Caveat:wght@600&family=Geist+Mono:wght@400;500&family=Literata:opsz,wght@7..72,400&family=Source+Sans+3:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================ tokens
+       Nota's palette: deep slate ink on clean white, one warm brand accent,
+       and the readiness colours (green ready, amber getting there, red at
+       risk, grey not started). Change a colour here and it changes everywhere. */
+    :root {
+      --slate-950: #0e1726;
+      --slate-900: #142033;
+      --slate-800: #1e2b40;
+      --slate-600: #475569;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --white: #ffffff;
+      --paper: #fbfaf7;
+      --brand: #d95d39;          /* the Nota mark */
+      --brand-soft: #fbe9e1;
+      --ready: #2f9e6b;          /* Ready */
+      --getting: #e0a63a;        /* Getting there */
+      --risk: #d64545;           /* Shaky / at risk */
+      --none: #cbd5e1;           /* Not started */
+      --hl: #fff1b8;             /* the highlighted line on a slide */
+      --radius: 18px;
+      --shadow: 0 1px 2px rgba(14, 23, 38, .05), 0 18px 50px -18px rgba(14, 23, 38, .22);
+      --serif: "Newsreader", Georgia, serif;
+      --sans: "Geist", system-ui, sans-serif;
+      --mono: "Geist Mono", ui-monospace, monospace;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; overflow-x: clip; }
+    body { background: var(--paper); color: var(--slate-900); font: 400 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    .wrap { width: min(1160px, 100% - 32px); margin-inline: auto; }
+    h1, h2, h3 { font-family: var(--serif); font-weight: 400; letter-spacing: -.015em; margin: 0; }
+    h2 { font-size: clamp(32px, 4.2vw, 50px); line-height: 1.08; }
+    /* Section labels: a soft italic serif in sentence case, not shouted monospace. */
+    .kicker { display: inline-block; font: italic 400 19px/1.2 var(--serif); letter-spacing: 0; color: #c4673f; margin-bottom: 12px; }
+    .kicker::first-letter { text-transform: uppercase; }
+    .sub { color: var(--slate-600); max-width: 46ch; margin: 18px 0 0; }
+    section { padding: 120px 0; }
+    .split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; align-items: center; }
+
+    /* ============================================================== nav */
+    nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--paper) 85%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid transparent; transition: border-color .3s; }
+    nav.scrolled { border-color: var(--slate-200); }
+    nav .wrap { display: flex; align-items: center; height: 64px; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 10px; font: 500 22px/1 var(--serif); text-decoration: none; }
+    .brand img { width: 28px; height: 28px; }
+    nav .links { margin-left: auto; display: flex; gap: 24px; font-size: 14px; color: var(--slate-600); }
+    nav .links a { text-decoration: none; }
+    nav .links a:hover { color: var(--slate-900); }
+    .btn { display: inline-flex; align-items: center; gap: 9px; padding: 13px 20px; border-radius: 12px; background: var(--slate-900); color: var(--white); text-decoration: none; font: 500 15px/1 var(--sans); border: 0; cursor: pointer; box-shadow: 0 10px 24px -12px rgba(14, 23, 38, .55); transition: transform .2s, background .2s; }
+    .btn:hover { transform: translateY(-1px); background: var(--slate-800); }
+    .btn.ghost { background: transparent; color: var(--slate-900); box-shadow: inset 0 0 0 1px var(--slate-200); }
+    .btn.ghost:hover { background: var(--white); }
+    .btn.small { padding: 10px 14px; font-size: 14px; }
+
+    /* ============================================================ 1 hero */
+    .hero { padding: 88px 0 120px; position: relative; isolation: isolate; }
+    .hero .split { grid-template-columns: 1.05fr 1fr; }
+    .hero-light { position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(closest-side at 18% 40%, rgba(217, 93, 57, .10), rgba(217, 93, 57, .05) 45%, rgba(217, 93, 57, 0)) 0 0 / 100% 100% no-repeat,
+        radial-gradient(closest-side at 82% 62%, rgba(47, 158, 107, .08), rgba(47, 158, 107, .03) 50%, rgba(47, 158, 107, 0)) 0 0 / 100% 100% no-repeat; }
+    .eyebrow { display: inline-flex; gap: 8px; font-size: 13px; color: var(--slate-600); padding: 7px 13px; border: 1px solid var(--slate-200); border-radius: 999px; background: var(--white); }
+    .eyebrow b { color: var(--ready); font-weight: 600; }
+    .hero h1 { font-size: clamp(44px, 6.4vw, 84px); line-height: .98; margin: 22px 0 0; }
+    .hero h1 em { color: var(--brand); }
+    .hero .lede { font-size: 19px; color: var(--slate-600); max-width: 44ch; margin: 24px 0 0; }
+    .hero .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .hero .fine { font-size: 13px; color: var(--slate-400); margin-top: 14px; }
+    .reveal { opacity: 0; transform: translateY(24px); }           /* set back by anime.js */
+    .no-motion .reveal { opacity: 1; transform: none; }
+
+    /* The app, abstracted: a library rail, a tutor answer, a readiness ring. */
+    .appui { position: relative; background: var(--white); border-radius: 22px; box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .06); padding: 14px; display: grid; grid-template-columns: 110px 1fr; gap: 14px; min-height: 380px; }
+    .appui .rail { display: flex; flex-direction: column; gap: 9px; padding: 6px; }
+    .appui .rail i { display: block; height: 9px; border-radius: 5px; background: var(--slate-100); }
+    .appui .rail i:nth-child(1) { width: 70%; background: var(--slate-200); height: 11px; margin-bottom: 6px; }
+    .appui .rail i:nth-child(3) { background: var(--brand-soft); }
+    .appui .main { background: var(--slate-100); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .appui .q { align-self: flex-end; background: var(--slate-900); color: var(--white); font-size: 13px; padding: 9px 12px; border-radius: 12px 12px 4px 12px; max-width: 80%; }
+    .appui .a { background: var(--white); font: 15px/1.55 "Literata", Georgia, serif; padding: 12px 14px; border-radius: 12px; box-shadow: 0 1px 2px rgba(14, 23, 38, .06); }
+    .cite { display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: var(--brand); color: var(--white); font: 600 11px/1 var(--sans); vertical-align: 1px; }
+    .appui .ring { position: absolute; right: -26px; bottom: -26px; width: 116px; height: 116px; border-radius: 50%; background: var(--white); box-shadow: var(--shadow); display: grid; place-items: center; }
+    .appui .ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+    .appui .ring b { position: absolute; font: 500 22px/1 var(--serif); }
+
+    /* ======================================================= 2 readiness
+       A simulator: courses as tabs, objectives as squares by lecture, a
+       detail card that explains a square and lets you practise it. */
+    .ready-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 22px; }
+    .r-course { margin: 0; font-size: 14px; color: var(--slate-600); }
+    .r-course b { font: 500 18px var(--serif); color: var(--slate-900); margin-right: 4px; }
+    .r-tabs button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 9px 13px; border-radius: 12px; border: 1px solid var(--slate-200); background: var(--white); cursor: pointer; font: 500 14px/1.1 var(--sans); color: var(--slate-900); transition: border-color .2s, background .2s, transform .2s; }
+    .r-tabs button small { font: 400 11.5px/1 var(--sans); color: var(--slate-400); }
+    .r-tabs button:hover { border-color: var(--slate-400); transform: translateY(-1px); }
+    .r-tabs button[aria-selected="true"] { background: var(--slate-900); border-color: var(--slate-900); color: var(--white); }
+    .r-tabs button[aria-selected="true"] small { color: var(--slate-400); }
+    .r-body { display: grid; grid-template-columns: 150px 1fr; gap: 22px; margin-top: 20px; align-items: start; }
+    .r-score { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+    .r-score .ring { position: relative; flex: none; width: 120px; height: 120px; display: grid; place-items: center; }
+    .r-score svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .r-score b#r-pct { font: 500 30px/1 var(--serif); }
+    .r-score .ring span { position: absolute; bottom: 30px; font: 500 10px/1 var(--mono); letter-spacing: .1em; color: var(--slate-400); }
+    .r-score p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--slate-600); }
+    .r-score .btn { white-space: nowrap; padding: 9px 12px; font-size: 13px; }
+    .r-score .risk { color: var(--risk); }
+    .gain { position: absolute; top: 6px; right: 6px; font: 600 14px/1 var(--sans); color: var(--ready); pointer-events: none; }
+    .r-map { display: grid; gap: 10px; }
+    .lec { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; }
+    .lec-name { font-size: 12.5px; color: var(--slate-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sqs { display: flex; flex-wrap: wrap; gap: 7px; }
+    .sq { position: relative; width: 30px; height: 30px; border-radius: 8px; background: var(--slate-100); border: 0; padding: 0; cursor: pointer; transition: transform .18s, box-shadow .18s; }
+    .sq:hover { transform: translateY(-2px) scale(1.08); box-shadow: 0 6px 14px -6px rgba(14, 23, 38, .45); }
+    .sq.on { box-shadow: 0 0 0 2.5px var(--white), 0 0 0 4.5px var(--slate-900); }
+    .sq:focus-visible { outline: 2px solid var(--slate-900); outline-offset: 3px; }
+    /* The objective's name, on hover. */
+    .sq[data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%); z-index: 5; width: max-content; max-width: 230px; padding: 6px 9px; border-radius: 8px; background: var(--slate-900); color: var(--white); font: 500 12px/1.35 var(--sans); text-align: left; pointer-events: none; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; font-size: 12.5px; color: var(--slate-600); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .r-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .r-detail { margin-top: 14px; min-height: 132px; border-radius: 14px; background: var(--slate-100); padding: 14px 16px; }
+    .d-empty { margin: 0; color: var(--slate-600); font-size: 14px; display: grid; place-items: center; min-height: 104px; text-align: center; }
+    .d-head { display: flex; align-items: center; gap: 10px; }
+    .d-pill { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px/1 var(--sans); padding: 5px 9px; border-radius: 999px; background: var(--white); color: var(--slate-900); }
+    .d-pill::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--c); }
+    .d-lec { font-size: 12px; color: var(--slate-400); }
+    .d-obj { margin: 8px 0 6px; font: 500 17px/1.3 var(--serif); }
+    .d-why { margin: 0 0 12px; padding-left: 18px; color: var(--slate-600); font-size: 13px; display: grid; gap: 3px; }
+    .d-act { position: relative; overflow: hidden; }
+    .d-act .d-bar { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(47, 158, 107, .55); }
+    .d-act:disabled { cursor: progress; }
+    .d-note { margin-left: 10px; font-size: 12.5px; color: var(--slate-400); }
+    .d-done { margin: 0; font-size: 13.5px; color: #256f4c; }
+
+    /* ============================================================= 3 tutor
+       Pick a question; click the citation number to follow it to the slide. */
+    #tutor .split { grid-template-columns: .85fr 1.15fr; gap: 48px; }
+    .t-ask { margin-top: 26px; display: grid; gap: 8px; justify-items: start; }
+    .t-ask .label { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--slate-400); }
+    #t-questions { display: grid; gap: 7px; justify-items: start; }
+    #t-questions button { font: 500 14px/1.3 var(--sans); text-align: left; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--slate-200); background: var(--white); color: var(--slate-900); cursor: pointer; transition: border-color .2s, transform .2s, background .2s; }
+    #t-questions button:hover { border-color: var(--slate-400); transform: translateX(3px); }
+    #t-questions button[aria-pressed="true"] { background: var(--slate-900); border-color: var(--slate-900); color: var(--white); }
+    button.cite { border: 0; cursor: pointer; width: 24px; height: 24px; font-size: 12px; margin-left: 3px; transition: transform .2s; }
+    button.cite:hover { transform: scale(1.15); }
+    button.cite.pulse { animation: cite-ping 1.6s ease-out infinite; }
+    @keyframes cite-ping { 0% { box-shadow: 0 0 0 0 rgba(217, 93, 57, .55); } 100% { box-shadow: 0 0 0 10px rgba(217, 93, 57, 0); } }
+    .duo { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .chat, .doc { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 18px; }
+    .chat .label, .doc .label { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--slate-400); margin-bottom: 14px; }
+    .bubble { background: var(--slate-100); border-radius: 14px 14px 14px 4px; padding: 13px 14px; font: 15px/1.55 "Literata", Georgia, serif; }
+    .bubble.q { background: var(--slate-900); color: var(--white); border-radius: 14px 14px 4px 14px; font: 14px/1.45 var(--sans); margin: 0 0 12px auto; max-width: 90%; }
+    .doc .slide { aspect-ratio: 4 / 3.2; border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px; font-size: 13.5px; }
+    .doc .slide h4 { margin: 0 0 10px; font: 500 17px/1.2 var(--serif); }
+    .doc .slide p { margin: 7px 0; color: var(--slate-600); position: relative; }
+    .doc .slide .mark { position: relative; color: var(--slate-900); }
+    .doc .slide .mark::before { content: ""; position: absolute; inset: -2px -5px; border-radius: 5px; background: var(--hl); z-index: -1; transform-origin: 0 50%; transform: scaleX(var(--hl-scale, 0)); }
+    .doc .slide .mark { isolation: isolate; }
+    .doc .foot { display: flex; justify-content: space-between; margin-top: 10px; font: 500 11.5px/1 var(--mono); color: var(--slate-400); }
+    .connector { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .connector path { fill: none; stroke: var(--brand); stroke-width: 2.2; stroke-linecap: round; }
+    .connector circle { fill: var(--brand); }
+
+    /* ======================================================= 4 flashcards */
+    .stack { position: relative; height: 380px; perspective: 1400px; }
+    .card { position: absolute; inset: 0 8% 0 8%; transform-style: preserve-3d; cursor: pointer; }
+    .card .face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 20px; background: var(--white); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .06); padding: 28px; display: flex; flex-direction: column; }
+    .card .front { align-items: center; justify-content: center; text-align: center; }
+    .card .front .term { font: 400 34px/1.1 var(--serif); }
+    .card .front .hint { margin-top: 14px; font-size: 13px; color: var(--slate-400); }
+    .card .back { transform: rotateY(180deg); gap: 12px; }
+    .card .back .meaning { font: 16px/1.55 "Literata", Georgia, serif; }
+    .card .back .from { margin-top: auto; border: 1px solid var(--slate-200); border-radius: 12px; padding: 12px 14px; font-size: 13px; background: var(--slate-100); }
+    .card .back .from b { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--slate-400); margin-bottom: 6px; }
+    .card .back .from span { background: var(--hl); border-radius: 4px; padding: 0 4px; }
+    .flash-controls { display: flex; gap: 10px; margin-top: 26px; }
+
+    /* ===================================================== 5 make it yours */
+    .yours { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .panel { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 20px; }
+    .panel .label { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--slate-400); margin-bottom: 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips button { font: 500 13px/1 var(--sans); padding: 8px 12px; border-radius: 999px; border: 1px solid var(--slate-200); background: var(--white); color: var(--slate-900); cursor: pointer; }
+    .chips button[aria-pressed="true"] { background: var(--slate-900); color: var(--white); border-color: var(--slate-900); }
+    .sample { margin: 14px 0 0; font: 17px/1.55 "Literata", Georgia, serif; min-height: 4.7em; }
+    .layout { position: relative; height: 170px; margin-top: 14px; }
+    .layout i { position: absolute; border-radius: 10px; background: var(--slate-100); box-shadow: inset 0 0 0 1px var(--slate-200); }
+    .layout i::after { content: attr(data-name); position: absolute; left: 10px; top: 8px; font: 500 10.5px/1 var(--mono); color: var(--slate-400); text-transform: uppercase; letter-spacing: .08em; }
+    .player { display: flex; align-items: center; gap: 22px; background: linear-gradient(135deg, var(--slate-900), var(--slate-950)); color: var(--white); overflow: hidden; position: relative; min-height: 0; }
+    .player .label { color: var(--slate-400); }
+    .record { width: 136px; height: 136px; flex: none; border-radius: 50%; position: relative; overflow: hidden; border: 0; padding: 0; cursor: pointer;
+      background: radial-gradient(circle, transparent 0 41%, rgba(255,255,255,.05) 41.5% 42%, transparent 42.5% 77%, rgba(30,215,96,.2) 77.5% 78%, transparent 78.5%), repeating-radial-gradient(circle, #151210 0 1.1px, #1e1a17 1.5px 2.4px), #151210;
+      box-shadow: 0 24px 50px -18px rgba(0, 0, 0, .8); }
+    .nota-label { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+    .record .grooves { position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle, transparent 0 2px, rgba(0, 0, 0, .1) 2.4px 2.8px), radial-gradient(circle, transparent 58%, rgba(0, 0, 0, .25)); }
+    .record .grooves::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 30deg, transparent 0 10%, rgba(255, 255, 255, .2) 15%, transparent 22% 55%, rgba(255, 255, 255, .12) 62%, transparent 70%); }
+    .player .now { font: 400 22px/1.2 var(--serif); margin: 4px 0 6px; }
+    .player p { color: var(--slate-400); margin: 0; font-size: 13.5px; max-width: 30ch; }
+    /* The plain-words calendar: a sentence typed, an event lands on its day. */
+    .cal-input { display: flex; align-items: center; gap: 6px; padding: 11px 13px; border-radius: 12px; background: var(--slate-100); font: 14px/1.3 var(--sans); min-height: 44px; }
+    .cal-input .slash { font: 500 13px/1 var(--mono); color: var(--brand); }
+    .cal-input .caret { width: 1.5px; height: 17px; background: var(--slate-900); animation: caret 1s steps(1) infinite; }
+    @keyframes caret { 50% { opacity: 0; } }
+    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 12px; }
+    .week .d { min-height: 82px; border-radius: 10px; background: var(--slate-100); padding: 6px 5px; display: flex; flex-direction: column; gap: 4px; }
+    .week .d b { font: 500 10px/1 var(--mono); color: var(--slate-400); text-transform: uppercase; }
+    .week .ev { font: 500 10.5px/1.25 var(--sans); color: var(--slate-900); background: var(--white); border-left: 3px solid var(--brand); border-radius: 5px; padding: 4px 5px; box-shadow: 0 1px 2px rgba(14, 23, 38, .08); }
+    .week .ev i { display: block; font-style: normal; color: var(--slate-400); font-size: 9.5px; }
+    .cal-demo .hint { margin: 10px 0 0; font-size: 13px; color: var(--slate-600); }
+    .player .embed { margin-top: 14px; border-radius: 12px; overflow: hidden; }
+    .player .embed:empty { display: none; }
+
+    /* ========================================================== 6 privacy
+       Light, like the rest of the page: your computer is a calm boundary
+       around your library. Files flow into Nota inside it; anything heading
+       out ripples off the edge; only the question goes to your AI provider. */
+    #yours { padding-bottom: 48px; }
+    .private { padding-top: 64px; padding-bottom: 72px; }
+    .download { padding-top: 48px; }
+    /* Just the network, straight on the page. */
+    .vault-card { position: relative; width: 100%; max-width: 620px; justify-self: end; }
+    .graph { width: 100%; height: auto; display: block; touch-action: none; user-select: none; overflow: visible; }
+    .graph .e { stroke: #cbd5e1; stroke-width: 1.1; transition: stroke .25s, opacity .25s; }
+    .graph .e.ai { stroke: #94a3b8; stroke-dasharray: 3 5; }
+    .graph .n { cursor: grab; transition: opacity .25s; }
+    .graph .n:active { cursor: grabbing; }
+    .graph .lbl { font: 500 11px var(--sans); fill: var(--slate-600); paint-order: stroke; stroke: rgba(255, 255, 255, .92); stroke-width: 3.5px; stroke-linejoin: round; pointer-events: none; }
+    .graph .n.hub .lbl { font: 600 13px var(--serif); fill: var(--slate-900); }
+    .graph .n.ai .lbl { font: 500 11px var(--mono); fill: var(--slate-900); }
+    .graph.focus .n:not(.hot), .graph.focus .e:not(.hot) { opacity: .16; }
+    .graph .e.hot { stroke: var(--brand); stroke-width: 1.6; }
+    .graph .n.hot .lbl { fill: var(--slate-900); }
+    /* ========================================================= library map
+       The map as a card: a colour switch and key on top, the network, a find
+       bar under it; hits and a topic's details float over it. */
+    #map { padding-top: 64px; padding-bottom: 40px; }
+    .map-split { grid-template-columns: .85fr 1.15fr; }
+    .map-feats { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; color: var(--slate-600); font-size: 15px; }
+    .map-feats b { color: var(--slate-900); font-weight: 600; margin-right: 4px; }
+    .map-card { position: relative; background: var(--white); border-radius: 22px; box-shadow: var(--shadow), 0 0 0 1px rgba(14, 23, 38, .05); padding: 14px 14px 12px; }
+    .map-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 2px 4px 6px; }
+    .seg { display: inline-flex; background: var(--slate-100); border-radius: 999px; padding: 3px; }
+    .seg button { font: 500 12.5px/1 var(--sans); border: 0; background: transparent; color: var(--slate-600); padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+    .seg button[aria-checked="true"] { background: var(--white); color: var(--slate-900); box-shadow: 0 1px 3px rgba(14, 23, 38, .12); }
+    .map-key { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; font-size: 12px; color: var(--slate-600); }
+    .map-key li { display: flex; align-items: center; gap: 5px; }
+    .map-key i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    #map .graph .n.doc .lbl { font: 500 11.5px var(--sans); fill: var(--slate-900); }
+    #map .graph .n.topic .lbl { font: italic 400 11.5px var(--serif); fill: #b5461f; }
+    #map .graph .n.course .lbl { font: 600 13px var(--serif); fill: var(--slate-900); }
+    #map .graph .n circle.dot { transition: fill .45s; }
+    #map .graph.lit .n:not(.on), #map .graph.lit .e:not(.on) { opacity: .14; }
+    #map .graph .e.on { stroke: var(--brand); stroke-width: 1.6; }
+    #map .graph .e.cross { stroke: #e7b4a2; }
+    .map-find { display: flex; align-items: center; gap: 8px; border: 1px solid var(--slate-200); border-radius: 14px; padding: 8px 10px; margin-top: 4px; color: var(--slate-400); }
+    .map-find:focus-within { border-color: var(--brand); }
+    .map-find svg { width: 16px; height: 16px; flex: none; }
+    .map-find input { flex: 1; min-width: 0; border: 0; outline: 0; font: 400 14.5px var(--sans); color: var(--slate-900); background: transparent; }
+    .map-tries { display: flex; gap: 6px; }
+    .map-tries button { font: 500 12px/1 var(--sans); border: 1px solid var(--slate-200); background: var(--white); color: var(--slate-600); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
+    .map-tries button:hover { border-color: var(--brand); color: var(--brand); }
+    .map-hits { position: absolute; left: 14px; bottom: 66px; width: min(280px, calc(100% - 28px)); background: rgba(255, 255, 255, .97); border: 1px solid var(--slate-200); border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow); font-size: 13px; }
+    .map-hits[hidden], .map-pop[hidden] { display: none; }
+    .map-hits .h-q { font-size: 11.5px; color: var(--slate-400); margin: 0 0 6px; }
+    .map-hits .hit { padding: 7px 0; border-top: 1px solid var(--slate-100); }
+    .map-hits .hit b { font-weight: 600; }
+    .map-hits .hit .pg { float: right; font: 500 11px var(--mono); color: var(--brand); background: var(--brand-soft); border-radius: 6px; padding: 2px 6px; }
+    .map-hits .hit p { margin: 3px 0 0; color: var(--slate-600); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .map-hits mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 2px; }
+    .map-pop { position: absolute; right: 14px; top: 58px; width: 230px; background: rgba(255, 255, 255, .97); border: 1px solid var(--slate-200); border-radius: 14px; padding: 12px; box-shadow: var(--shadow); font-size: 13px; }
+    .map-pop .k { font: 500 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--slate-400); }
+    .map-pop h4 { margin: 6px 0 2px; font: 400 18px/1.2 var(--serif); }
+    .map-pop .in { color: var(--slate-600); font-size: 12.5px; }
+    .map-pop .bar { height: 7px; border-radius: 99px; background: var(--slate-100); margin: 10px 0 4px; overflow: hidden; }
+    .map-pop .bar i { display: block; height: 100%; border-radius: 99px; }
+    .map-pop .go { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; border: 0; background: var(--slate-900); color: #fff; font: 500 12.5px/1 var(--sans); padding: 8px 12px; border-radius: 999px; cursor: pointer; }
+    .map-pop .go:hover { background: var(--brand); }
+    .map-pop .said { margin: 8px 0 0; font-size: 12px; color: var(--ready); }
+    /* Privacy: the computer, a few things inside it, one wire out. */
+    .vault { width: 100%; max-width: 560px; justify-self: end; }
+    .vault svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .v-box { fill: var(--white); stroke: var(--slate-200); stroke-width: 1.5; }
+    .v-title { font: italic 400 17px var(--serif); fill: #c4673f; }
+    .v-chip rect { fill: var(--slate-100); }
+    .v-chip text { font: 500 13px var(--sans); fill: var(--slate-900); }
+    .v-chip circle { fill: var(--brand); }
+    .v-wire { fill: none; stroke: var(--slate-400); stroke-width: 1.6; stroke-dasharray: 4 6; }
+    .v-ai { fill: var(--slate-900); }
+    .v-ai-l { font: 500 13px var(--sans); fill: var(--slate-900); }
+    .v-ai-s { font: 400 11.5px var(--sans); fill: var(--slate-400); }
+    .points { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; color: var(--slate-600); font-size: 15px; }
+    .points li::before { content: "✓"; color: var(--ready); font-weight: 600; margin-right: 10px; }
+
+    /* ========================================================= download */
+    .download { text-align: center; }
+    .download h2 { max-width: 18ch; margin-inline: auto; }
+    .download .cta { display: flex; justify-content: center; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+    .download .sub { max-width: 46ch; }
+    .zip-dl { margin: 16px 0 0; font-size: 13.5px; color: var(--slate-600); }
+    .zip-dl[hidden] { display: none; }
+    .dl-help { max-width: 640px; margin: 26px auto 0; text-align: left; background: var(--white); border: 1px solid var(--slate-200); border-radius: 16px; padding: 20px 24px; font-size: 14.5px; line-height: 1.6; }
+    .dl-help[hidden] { display: none; }
+    .dl-help .dl-title { margin: 0 0 10px; font-weight: 600; }
+    .dl-help .dl-title span { font-weight: 400; color: var(--slate-600); }
+    .dl-help ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+    .dl-help ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+    .dl-help code { font-family: var(--mono); font-size: 12.5px; background: var(--slate-100); border-radius: 4px; padding: 1px 4px; }
+    .dl-help .dl-alt { margin: 14px 0 0; color: var(--slate-600); font-size: 13.5px; }
+    .reqs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 24px; font-size: 13.5px; color: var(--slate-400); }
+    #faq { padding-top: 40px; }
+    .faq { max-width: 780px; margin-top: 28px; }
+    details { border-bottom: 1px solid var(--slate-200); padding: 18px 0; }
+    details summary { cursor: pointer; font-weight: 500; font-size: 16.5px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::after { content: "+"; color: var(--slate-400); font-size: 20px; line-height: 1; }
+    details[open] summary::after { content: "–"; }
+    details p { color: var(--slate-600); margin: 10px 0 0; max-width: 46em; }
+    footer { padding: 36px 0 60px; color: var(--slate-400); font-size: 13px; border-top: 1px solid var(--slate-200); }
+    footer .wrap { display: flex; gap: 20px; }
+
+    /* ======================================================= responsive */
+    @media (max-width: 900px) {
+      section { padding: 84px 0; }
+      .split, .hero .split, #tutor .split { grid-template-columns: 1fr; gap: 40px; }
+      nav .links { display: none; }
+      nav .btn.small { margin-left: auto; }
+      .appui { grid-template-columns: 1fr; min-height: 0; }
+      .appui .rail { display: none; }
+      .appui .ring { right: 10px; bottom: -40px; width: 92px; height: 92px; }
+      .appui .ring svg { width: 72px; height: 72px; }
+      .r-body { grid-template-columns: 1fr; }
+      .r-score { flex-direction: row; flex-wrap: wrap; text-align: left; }
+      .r-score p { flex: 1; min-width: 150px; }
+      .lec { grid-template-columns: 1fr; gap: 6px; }
+      .duo { grid-template-columns: 1fr; gap: 14px; }
+      .doc .slide { aspect-ratio: auto; }
+      .yours { grid-template-columns: 1fr; }
+      .map-split { grid-template-columns: 1fr; }
+      .map-tries button:nth-child(n+2) { display: none; }
+      .map-pop { right: 8px; top: auto; bottom: 64px; width: min(230px, calc(100% - 16px)); }
+      .map-hits { left: 8px; top: auto; bottom: 64px; }
+      .map-hits .hit + .hit { display: none; }
+      .player { flex-direction: column; align-items: flex-start; }
+      .week .d { min-height: 64px; }
+      .record { width: 140px; height: 140px; }
+    }
+    /* The hand-written notes: a few words and a drawn arrow, placed by script
+       so the arrow lands on what it means at any width (see placeNudges). */
+    .nudge { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 20; pointer-events: none; color: var(--brand); transition: opacity .6s; }
+    .nudge em { position: absolute; white-space: nowrap; font: 600 22px/1 "Caveat", "Segoe Print", cursive; font-style: normal; transform: rotate(-2deg); }
+    .nudge svg { position: absolute; left: 0; top: 0; overflow: visible; }
+    .nudge path { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .nudge.gone { opacity: 0; }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="nota-mark.svg" alt="" />Nota</a>
+      <div class="links"><a href="#readiness">Readiness</a><a href="#tutor">Tutor</a><a href="#flashcards">Flashcards</a><a href="#yours">Make it yours</a><a href="#map">Library map</a><a href="#private">Privacy</a><a href="#faq">FAQ</a></div>
+      <a class="btn small" href="#download">Download</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <!-- 1 · Hero -->
+    <header class="hero">
+      <div class="hero-light" aria-hidden="true"></div>
+      <div class="wrap split">
+        <div>
+          <h1 class="reveal">Study your own lectures, <em>with a tutor that read them.</em></h1>
+          <p class="lede reveal">Drop in your slides, notes and syllabus. Nota teaches every objective, shows the page each answer came from, and tells you how ready you are for each exam.</p>
+          <div class="cta reveal">
+            <a class="btn" href="#download">Download for Windows</a>
+            <a class="btn ghost" href="#readiness">See your readiness map</a>
+          </div>
+          <p class="fine reveal">Windows 10 or 11 · free AI key from Google or Groq</p>
+        </div>
+        <div class="appui reveal" id="appui" aria-label="Nota's tutor answering from a lecture, with a readiness ring">
+          <div class="rail"><i></i><i></i><i></i><i></i><i></i><i style="width:60%"></i></div>
+          <div class="main">
+            <div class="q">Why is an oral dose lower in the blood than IV?</div>
+            <div class="a">The liver clears part of an oral dose before it reaches the body: the <b>first-pass effect</b> <span class="cite">1</span>.</div>
+            <div class="a" style="opacity:.55">What's left is the bioavailability <span class="cite">2</span></div>
+          </div>
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--slate-100)" stroke-width="9" /><circle id="hero-ring" cx="50" cy="50" r="42" fill="none" stroke="var(--ready)" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 264" /></svg>
+            <b id="hero-pct">0%</b>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2 · Exam readiness -->
+    <section id="readiness">
+      <div class="wrap split">
+        <div>
+          <span class="kicker">Exam readiness</span>
+          <h2 >Know which objectives you'd lose marks on, weeks before the exam.</h2>
+          <p class="sub">Every learning objective gets a colour, scored from what you've actually done: the cards you remember, the cases you answered, what the tutor marked. The ring is how much of the exam you could answer today.</p>
+        </div>
+        <div class="ready-card" id="ready-card">
+          <p class="r-course"><b>Biology</b> · Midterm in 12 days</p>
+          <div class="r-body">
+            <div class="r-score" id="r-score">
+              <div class="ring" aria-hidden="true">
+                <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--slate-100)" stroke-width="9" /><circle id="r-ring" cx="50" cy="50" r="42" fill="none" stroke="var(--ready)" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 264" style="transition: stroke .4s" /></svg>
+                <b id="r-pct">0%</b><span>READY</span>
+              </div>
+              <p id="r-line"></p>
+            </div>
+            <div class="r-map" id="r-map" role="group" aria-label="Objectives by lecture, coloured by readiness"></div>
+          </div>
+          <div class="r-foot">
+            <div class="legend" style="margin:0"><span><i style="background:var(--ready)"></i>Ready</span><span><i style="background:var(--getting)"></i>Getting there</span><span><i style="background:var(--risk)"></i>Shaky</span><span><i style="background:var(--none)"></i>Not started</span></div>
+          </div>
+          <div class="r-detail" id="r-detail" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Tutor & citations -->
+    <section id="tutor">
+      <div class="wrap split">
+        <div class="copy">
+          <span class="kicker">The tutor</span>
+          <h2>Every answer shows the page it came from.</h2>
+          <p class="sub">Nota only answers from your own files. Each claim carries a number; follow it to the exact line on the exact slide.</p>
+        </div>
+        <div class="duo" id="duo">
+          <div class="chat">
+            <div class="label">Tutor</div>
+            <div class="bubble q" id="b-q"></div>
+            <div class="bubble" id="b-a"><span id="b-a-text"></span> <button type="button" class="cite pulse" id="cite" aria-label="Source 1: show the line on the slide">1</button></div>
+          </div>
+          <div class="doc">
+            <div class="label">Sample lecture · p. 8</div>
+            <div class="slide">
+              <h4>How cells die</h4>
+              <p><span class="mark">Coagulative: the tissue keeps its outline</span></p>
+              <p><span class="mark">Caseous: soft, crumbly, "cheese-like"</span></p>
+              <p><span class="mark">Liquefactive: the tissue turns to fluid</span></p>
+              <p>Classic example of caseous: tuberculosis</p>
+            </div>
+            <div class="foot"><span>Sample course · Week 2</span><span>8</span></div>
+          </div>
+          <svg class="connector" id="connector" aria-hidden="true"><path id="link" d="" /><circle id="link-dot" r="4.5" cx="-20" cy="-20" /></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Flashcards -->
+    <section id="flashcards">
+      <div class="wrap split">
+        <div>
+          <span class="kicker reveal">Practice that sticks</span>
+          <h2 class="reveal">Flashcards in plain words, with the slide they came from.</h2>
+          <p class="sub reveal">Cards are made lecture section by section. Turn one over and the slide behind it is right there. Hard cards come back in minutes, easy ones in days.</p>
+          <div class="flash-controls reveal"><button class="btn small" id="flip">Turn the card</button><button class="btn small ghost" id="next">Next card</button></div>
+        </div>
+        <div class="stack" id="stack" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- 5 · Make it yours -->
+    <section id="yours">
+      <div class="wrap">
+        <span class="kicker reveal">Make it yours</span>
+        <h2 class="reveal">A font you like, a layout that fits, music while you work.</h2>
+        <div class="yours" style="margin-top:44px">
+          <div class="panel reveal">
+            <div class="label">The tutor's font</div>
+            <div class="chips" id="fonts">
+              <button type="button" aria-pressed="true" data-font="Literata">Literata</button>
+              <button type="button" aria-pressed="false" data-font="Source Sans 3">Source Sans</button>
+              <button type="button" aria-pressed="false" data-font="Newsreader">Newsreader</button>
+            </div>
+            <p class="sample" id="sample">The first-pass effect: a drug absorbed from the gut passes through the liver first, so less of an oral dose arrives.</p>
+          </div>
+          <div class="panel reveal">
+            <div class="label">The side panel</div>
+            <div class="chips" id="layouts">
+              <button type="button" aria-pressed="true" data-layout="stack">Stacked</button>
+              <button type="button" aria-pressed="false" data-layout="side">Side by side</button>
+            </div>
+            <div class="layout" id="layout"><i data-name="Readiness"></i><i data-name="Calendar"></i><i data-name="To-do"></i></div>
+          </div>
+          <div class="panel player reveal" id="player">
+            <button type="button" class="record" id="record" aria-label="Play study music">
+              <svg class="nota-label" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#191414"/><path fill="#1ED760" d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg><span class="grooves"></span>
+            </button>
+            <div>
+              <div class="label">Study music · Beta</div>
+              <div class="now" id="now">Deep Focus</div>
+              <p>A record in the corner of the app plays any Spotify playlist. Tap it to try.</p>
+              <div class="embed" id="embed"></div>
+            </div>
+          </div>
+          <div class="panel cal-demo reveal" id="cal-demo">
+            <div class="label">Your calendar, in plain words</div>
+            <div class="cal-input" aria-live="polite"><span class="slash">/calendar</span><span id="cal-typed"></span><i class="caret"></i></div>
+            <div class="week" id="week"></div>
+            <p class="hint">Type it the way you'd say it. Exams and deadlines from your syllabus arrive on their own.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 · Library map -->
+    <section id="map">
+      <div class="wrap split map-split">
+        <div>
+          <span class="kicker reveal">Library map</span>
+          <h2 class="reveal">See how everything you study connects.</h2>
+          <p class="sub reveal">Every lecture and recording, joined by the topics they share across your courses, and coloured by how ready you are.</p>
+          <ul class="map-feats reveal">
+            <li><b>Find</b> a topic and light up every lecture that teaches it</li>
+            <li><b>Ask</b> across all of them; the answer shows its pages</li>
+            <li><b>Readiness</b> on every topic, so you know where to start</li>
+          </ul>
+        </div>
+        <div class="map-card reveal" id="map-card">
+          <div class="map-bar">
+            <div class="seg" role="radiogroup" aria-label="Colour the map by">
+              <button type="button" role="radio" aria-checked="true" data-by="ready">Readiness</button>
+              <button type="button" role="radio" aria-checked="false" data-by="course">Courses</button>
+            </div>
+            <ul class="map-key" id="map-key" aria-label="Key"></ul>
+          </div>
+          <svg class="graph" id="graph" viewBox="0 0 600 420" role="img" aria-label="A sample library map: lectures from three courses, joined by the topics they share">
+            <g id="g-edges"></g>
+            <g id="g-pulses"></g>
+            <g id="g-nodes"></g>
+          </svg>
+          <div class="map-pop" id="map-pop" hidden></div>
+          <form class="map-find" id="map-find" autocomplete="off">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input id="map-q" placeholder="Find a topic…" aria-label="Find a topic on the map" />
+            <span class="map-tries" id="map-tries"></span>
+          </form>
+          <div class="map-hits" id="map-hits" hidden aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 · Privacy -->
+    <section class="private" id="private">
+      <div class="wrap split">
+        <div>
+          <span class="kicker reveal">Private by design</span>
+          <h2 class="reveal">Your library lives on your computer.</h2>
+          <p class="sub reveal">Your lectures are read and indexed on your own machine. Only your question and the few passages it needs go to the AI provider you choose, with your own key. Nothing is uploaded to a Nota server, because there isn't one.</p>
+          <ul class="points reveal"><li>Files and notes stay in your own folder</li><li>No account, no sign-up, no tracking</li><li>Find and the library map run on your machine, free</li><li>Only your question and a few passages go to the AI provider you pick</li></ul>
+        </div>
+        <div class="vault reveal" id="vault" aria-label="Your library stays on your computer; only a question goes out to your AI provider">
+          <svg viewBox="0 0 560 330" role="img" aria-hidden="true">
+            <rect x="10" y="20" width="360" height="270" rx="22" class="v-box" />
+            <text x="34" y="54" class="v-title">This computer</text>
+            <g id="v-items"></g>
+            <path id="v-wire" d="M370 150 C 420 150, 440 110, 490 110" class="v-wire" />
+            <circle cx="510" cy="110" r="24" class="v-ai" />
+            <text x="510" y="160" text-anchor="middle" class="v-ai-l">Your AI</text>
+            <text x="510" y="176" text-anchor="middle" class="v-ai-s">your own key</text>
+            <g id="v-pulses"></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section class="download" id="download">
+      <div class="wrap">
+        <span class="kicker reveal">Free for Windows</span>
+        <h2 class="reveal">Study your own lectures, starting today.</h2>
+        <p class="sub reveal" style="margin-inline:auto">Free. About a 280 MB download. Your study data stays on your computer.</p>
+        <div class="cta reveal"><a class="btn" id="download-link" href="https://github.com/aaronsu0105/nota/releases/latest/download/Nota-Setup.exe">Download Nota <span id="version"></span></a><a class="btn ghost" href="https://github.com/aaronsu0105/nota/releases/latest">All downloads</a></div>
+        <p class="zip-dl" id="zip-dl" hidden>Nothing in your downloads, or only a .tmp file? <a id="zip-link" href="https://github.com/aaronsu0105/nota/releases">Download as a .zip instead</a></p>
+        <div class="dl-help" id="dl-help" hidden role="status" aria-live="polite">
+          <p class="dl-title">Downloading Nota-Setup.exe <span>(about 280 MB, a few minutes)</span></p>
+          <ol>
+            <li><b>Your browser may hold it back.</b> Nota is new and not yet code-signed, so Edge or Chrome can say <i>“Nota-Setup.exe isn't commonly downloaded”</i>. Until you choose to keep it, the file stays as a temporary <code>.tmp</code> or <code>.crdownload</code> file, which isn't the installer yet.
+              <ul>
+                <li><b>Edge:</b> open the downloads list (Ctrl+J), hover the file, click <b>···</b> → <b>Keep</b> → <b>Show more</b> → <b>Keep anyway</b>.</li>
+                <li><b>Chrome:</b> open the downloads list (Ctrl+J) and click <b>Keep</b> (or <b>Download unverified file</b>).</li>
+              </ul>
+            </li>
+            <li><b>Nothing in the downloads list, only a <code>.tmp</code> file?</b> Something on this computer (an antivirus, a school or work laptop's rules) stopped the <code>.exe</code>. Use <b>Download as a .zip</b> above, then right-click the zip → <b>Extract All</b>, and open <b>Nota-Setup.exe</b> from the folder.</li>
+            <li><b>Open Nota-Setup.exe.</b> If Windows says <i>“Windows protected your PC”</i>, click <b>More info</b> → <b>Run anyway</b>. It installs to your user folder, with no administrator rights needed.</li>
+          </ol>
+          <p class="dl-alt">Didn't start? <a id="dl-direct" href="https://github.com/aaronsu0105/nota/releases/latest">Download it from the GitHub release page</a>.</p>
+        </div>
+        <div class="reqs"><span>Windows 10 / 11, 64-bit</span><span>8 GB RAM recommended</span><span>2 GB free disk space</span><span>Internet for AI answers</span></div>
+      </div>
+    </section>
+
+    <!-- Questions -->
+    <section id="faq">
+      <div class="wrap">
+        <span class="kicker reveal">Questions</span>
+        <h2 class="reveal">Good to know.</h2>
+        <div class="faq reveal">
+          <details><summary>Is Nota really free?</summary><p>Yes. Nota is free, and the AI providers it uses, Google Gemini, Groq and Cerebras, all have free tiers that cover normal studying. You make a key with your own account, so there's no bill from us.</p></details>
+          <details><summary>I only got a .tmp or .crdownload file. What happened?</summary><p>Something held the installer back, because Nota is new and not yet code-signed. Open the downloads list (<b>Ctrl+J</b>). If the file is there, keep it: in Edge, hover it and click <b>···</b> → <b>Keep</b> → <b>Show more</b> → <b>Keep anyway</b>; in Chrome, click <b>Keep</b>. If the list is empty, an antivirus or the computer's rules stopped the <code>.exe</code>: use <b>Download as a .zip</b> under the download button, right-click the zip → <b>Extract All</b>, and open Nota-Setup.exe. The temporary file on its own can be deleted.</p></details>
+          <details><summary>Windows says “Windows protected your PC”. Is it safe?</summary><p>Windows shows this for new apps that haven't built up a download reputation yet. Click <b>More info</b>, then <b>Run anyway</b>. The installer only puts Nota in your user folder and doesn't need administrator rights.</p></details>
+          <details><summary>What files can I add?</summary><p>PDFs (slides exported as PDF work well), Word documents (.docx), EPUB books, Markdown and plain text, web pages by link, and notes you paste in. Scanned PDFs with no text layer need the free Tesseract OCR installed.</p></details>
+          <details><summary>Does it work offline?</summary><p>Your library, reading, search and calendar all work offline. Answers, quizzes and skims need the internet, because they use the AI provider.</p></details>
+          <details><summary>Mac or Linux?</summary><p>Nota is Windows-only for now.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="wrap"><span>Nota</span><span>Study your own lectures.</span><span style="margin-left:auto">© 2026</span></div></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+  <script>
+  /* =========================================================================
+   * Nota — scroll-driven motion with anime.js
+   *
+   * Three kinds of motion, kept apart:
+   *   1. tweens       plain anime.js animations (load, loops, clicks)
+   *   2. onEnter      IntersectionObserver: play something once a block is seen
+   *   3. scrub        a paused anime.js timeline whose position follows the
+   *                   scroll position through a tall, sticky section
+   *
+   * Reduced motion (or no anime.js) shows every end state, still and readable.
+   * ========================================================================= */
+
+  /** IntersectionObserver threshold: the share of an element that must be on
+   *  screen before its animation starts. 0.25 = a quarter. Lower starts sooner,
+   *  higher waits until the block is well in view. */
+  const ENTER_THRESHOLD = 0.25;
+
+  /** Scroll-scrubbing speed. The timeline spans the scroll through the sticky
+   *  section, so its CSS height sets the speed: `.scrub { height: 320vh }` gives
+   *  2.2 screens of scrolling for the whole story. Raise it to play slower,
+   *  lower it to play faster. SCRUB_SMOOTHING eases the playhead toward the
+   *  scroll position each frame (1 = locked to the wheel, 0.1 = floaty). */
+  const SCRUB_SMOOTHING = 0.14;
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || typeof anime === 'undefined';
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+  if (reduced) document.documentElement.classList.add('no-motion');
+
+  /* ------------------------------------------------------------ utilities */
+
+  /** Run `play` once, the first time `el` is ENTER_THRESHOLD on screen. */
+  function onEnter(el, play, threshold = ENTER_THRESHOLD) {
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { io.disconnect(); play(entry.target); }
+      });
+    }, { threshold });
+    io.observe(el);
+  }
+
+  /** Call `cb(true|false)` whenever `el` comes into or leaves view (for loops). */
+  function whileVisible(el, cb) {
+    new IntersectionObserver(([entry]) => cb(entry.isIntersecting), { threshold: 0.15 }).observe(el);
+  }
+
+  /** An anime.js tween that walks an SVG circle along an SVG path, in the path's own units. */
+  function alongPath(dotEl, path, opts = {}) {
+    const len = path.getTotalLength();
+    const t = { v: 0 };
+    return {
+      targets: t, v: [0, 1], ...opts,
+      update: () => { const pt = path.getPointAtLength(t.v * len); dotEl.setAttribute('cx', pt.x); dotEl.setAttribute('cy', pt.y); },
+    };
+  }
+
+  /** Fade-and-rise for any `.reveal` blocks inside `root` (not the hero's). */
+  function revealIn(root) {
+    const items = $$('.reveal', root);
+    if (reduced) return;
+    anime({ targets: items, opacity: [0, 1], translateY: [24, 0], duration: 900, delay: anime.stagger(90), easing: 'easeOutExpo' });
+  }
+
+  /* ---------------------------------------------------------------- 1 hero */
+  function initHero() {
+    if (reduced) { $('#hero-ring').setAttribute('stroke-dasharray', '164 264'); $('#hero-pct').textContent = '62%'; return; }
+    // Text: staggered fade-and-slide on load.
+    anime({ targets: '.hero .reveal:not(.appui)', opacity: [0, 1], translateY: [28, 0], duration: 1100, delay: anime.stagger(110, { start: 150 }), easing: 'easeOutExpo' });
+    // The app: arrives, then floats forever.
+    anime({ targets: '#appui', opacity: [0, 1], translateY: [50, 0], duration: 1400, delay: 450, easing: 'easeOutExpo',
+      complete: () => anime({ targets: '#appui', translateY: [0, -12], duration: 3200, direction: 'alternate', loop: true, easing: 'easeInOutSine' }) });
+    // The readiness ring counts up.
+    const v = { n: 0 };
+    anime({ targets: v, n: 62, duration: 2000, delay: 1100, easing: 'easeOutCubic',
+      update: () => { $('#hero-ring').setAttribute('stroke-dasharray', `${(v.n / 100) * 264} 264`); $('#hero-pct').textContent = `${Math.round(v.n)}%`; } });
+    anime({ targets: '.appui .cite', scale: [0, 1], duration: 900, delay: anime.stagger(200, { start: 1500 }), easing: 'spring(1, 90, 10, 0)' });
+  }
+
+  /* ----------------------------------------------------------- 2 readiness
+     A small simulator of the readiness map. Each square is one learning
+     objective, grouped by lecture and coloured by how well you know it. Click
+     one to see why it is that colour, then practise it: the square moves up a
+     level and the exam's score rises with it. Sample courses, written for
+     this page. */
+  const LEVELS = ['none', 'risk', 'getting', 'ready'];
+  const WEIGHT = { none: 0, risk: 0.2, getting: 0.55, ready: 1 };
+  const STATUS = { ready: 'Ready', getting: 'Getting there', risk: 'Shaky', none: 'Not started' };
+  const WHY = {
+    ready: ['4 of 4 flashcards remembered', 'Case answered well on Tuesday'],
+    getting: ['2 of 4 flashcards remembered', 'Not tried as an exam case yet'],
+    risk: ['Exam case answered weakly: the key step was missed', '1 of 4 flashcards remembered'],
+    none: ['Not studied yet', 'No flashcards or cases for it so far'],
+  };
+  const ACTION = {
+    none: ['Learn it with /teach', 'The tutor teaches it step by step'],
+    risk: ['Practice an exam case', 'One worked case fixes most shaky objectives'],
+    getting: ['Review its flashcards', 'A few more cards and it is safe'],
+  };
+  const COURSES = [
+    { name: 'Biology', exam: 'Midterm', days: 12, lectures: [
+      ['L1 · Cells', [['Name the parts of a cell', 'ready'], ['Describe the cell membrane', 'ready'], ['Explain osmosis', 'getting'], ['Compare prokaryotes and eukaryotes', 'ready'], ['Describe diffusion', 'ready']]],
+      ['L2 · Enzymes', [['Define Km and Vmax', 'ready'], ['Read a saturation curve', 'getting'], ['Explain competitive inhibition', 'risk'], ['Predict an inhibitor’s effect', 'risk'], ['Describe allosteric control', 'none']]],
+      ['L3 · Metabolism', [['List the steps of glycolysis', 'getting'], ['Calculate the net ATP yield', 'risk'], ['Explain why the Krebs cycle needs oxygen', 'none'], ['Describe the electron transport chain', 'none'], ['Compare aerobic and anaerobic respiration', 'getting']]],
+      ['L4 · Genetics', [['Explain DNA replication', 'ready'], ['Compare mitosis and meiosis', 'getting'], ['Read a Punnett square', 'ready'], ['Describe transcription', 'getting'], ['Explain how mutations arise', 'risk']]],
+    ] },
+    { name: 'Pharmacology', exam: 'Quiz 2', days: 5, lectures: [
+      ['L1 · Absorption', [['Define bioavailability', 'ready'], ['Explain the first-pass effect', 'getting'], ['Compare oral and IV routes', 'ready'], ['Describe drug absorption', 'getting']]],
+      ['L2 · Distribution', [['Define volume of distribution', 'risk'], ['Explain protein binding', 'getting'], ['Describe the blood–brain barrier', 'none'], ['Explain tissue binding', 'none']]],
+      ['L3 · Elimination', [['Define clearance', 'risk'], ['Calculate a half-life', 'risk'], ['Explain renal elimination', 'getting'], ['Describe steady state', 'none']]],
+    ] },
+    { name: 'Physiology', exam: 'Final', days: 26, lectures: [
+      ['L1 · Homeostasis', [['Define homeostasis', 'ready'], ['Explain negative feedback', 'ready'], ['Give a positive feedback example', 'getting']]],
+      ['L2 · Nerves', [['Explain the resting potential', 'getting'], ['Describe an action potential', 'risk'], ['Explain saltatory conduction', 'none'], ['Compare the two kinds of synapse', 'none']]],
+      ['L3 · The heart', [['Describe the cardiac cycle', 'none'], ['Interpret an ECG trace', 'none'], ['Explain the Frank–Starling law', 'none'], ['Describe cardiac output', 'none']]],
+      ['L4 · The kidney', [['Label a nephron', 'getting'], ['Explain filtration', 'none'], ['Explain countercurrent exchange', 'none']]],
+    ] },
+  ];
+
+  function initReadiness() {
+    const map = $('#r-map'), detail = $('#r-detail'), pct = $('#r-pct'), ring = $('#r-ring'), line = $('#r-line');
+    const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim();
+    // Each course keeps its own progress while you switch between them.
+    const state = COURSES.map((c) => c.lectures.map(([, objs]) => objs.map(([, s]) => s)));
+    let course = 0, picked = null, shownPct = 0;
+
+    const score = () => {
+      const all = state[course].flat();
+      return { pct: Math.round((all.reduce((t, s) => t + WEIGHT[s], 0) / all.length) * 100), ready: all.filter((s) => s === 'ready').length, risk: all.filter((s) => s === 'risk' || s === 'none').length, total: all.length };
+    };
+    const setRing = (value) => {
+      ring.setAttribute('stroke-dasharray', `${(value / 100) * 264} 264`);
+      ring.setAttribute('stroke', value >= 70 ? css('ready') : value >= 45 ? css('getting') : css('risk'));
+      pct.textContent = `${Math.round(value)}%`;
+    };
+    const showScore = (animate) => {
+      const s = score();
+      line.innerHTML = `Ready on <b>${s.ready}</b> of ${s.total} · <span class="risk">${s.risk} at risk</span> · exam in ${COURSES[course].days} days`;
+      if (!animate || reduced) { shownPct = s.pct; setRing(s.pct); return; }
+      const v = { n: shownPct };
+      anime({ targets: v, n: s.pct, duration: 900, easing: 'easeOutCubic', update: () => setRing(v.n) });
+      shownPct = s.pct;
+    };
+
+    const describe = () => {
+      if (!picked) {
+        detail.innerHTML = '<p class="d-empty">Click any square to see why it has that colour.</p>';
+        return;
+      }
+      const [li, oi] = picked;
+      const st = state[course][li][oi];
+      const [lecture, objs] = COURSES[course].lectures[li];
+      const act = ACTION[st];
+      detail.innerHTML = `
+        <div class="d-head"><span class="d-pill" style="--c:var(--${st})">${STATUS[st]}</span><span class="d-lec">${lecture}</span></div>
+        <p class="d-obj">${objs[oi][0]}</p>
+        <ul class="d-why">${WHY[st].map((w) => `<li>${w}</li>`).join('')}</ul>
+        ${act
+          ? `<button type="button" class="btn small d-act" id="r-act"><span class="d-bar"></span>Practice it</button><span class="d-note">${act[1]}</span>`
+          : '<p class="d-done">Safe for the exam. Nota brings it back for a quick review in 6 days.</p>'}`;
+      $('#r-act')?.addEventListener('click', practise);
+    };
+
+    const square = (li, oi) => map.querySelector(`[data-l="${li}"][data-o="${oi}"]`);
+    const select = (li, oi) => {
+      picked = [li, oi];
+      $$('.sq', map).forEach((s) => s.classList.toggle('on', s === square(li, oi)));
+      describe();
+      nudgeDone('n-ready');
+      if (!reduced) anime({ targets: square(li, oi), scale: [1.3, 1], duration: 700, easing: 'spring(1, 120, 9, 0)' });
+    };
+
+    /** Practise the picked objective: a short "studying" beat, then it moves up a level. */
+    function practise() {
+      if (!picked) return;
+      const [li, oi] = picked;
+      const from = state[course][li][oi];
+      const to = from === 'none' ? 'getting' : from === 'risk' ? 'getting' : 'ready';
+      const btn = $('#r-act');
+      btn.disabled = true;
+      btn.lastChild.textContent = 'Studying…';
+      const bar = btn.querySelector('.d-bar');
+      const done = () => {
+        state[course][li][oi] = to;
+        const sq = square(li, oi);
+        sq.dataset.s = to;
+        sq.dataset.tip = `${COURSES[course].lectures[li][1][oi][0]} · ${STATUS[to]}`;
+        if (!reduced) {
+          anime({ targets: sq, backgroundColor: css(to), scale: [1.45, 1], duration: 900, easing: 'spring(1, 100, 9, 0)' });
+          floatGain(score().pct - shownPct);
+        } else sq.style.background = css(to);
+        showScore(true);
+        describe();
+      };
+      if (reduced) return done();
+      anime({ targets: bar, width: ['0%', '100%'], duration: 650, easing: 'easeInOutQuad', complete: done });
+    }
+
+    /** "+7%" rising from the score when an objective improves. */
+    function floatGain(gain) {
+      if (gain <= 0) return;
+      const tag = document.createElement('span');
+      tag.className = 'gain';
+      tag.textContent = `+${gain}%`;
+      $('#r-score').append(tag);
+      anime({ targets: tag, translateY: [0, -34], opacity: [{ value: 1, duration: 200 }, { value: 0, duration: 600, delay: 500 }], duration: 1300, easing: 'easeOutQuad', complete: () => tag.remove() });
+    }
+
+    const draw = (animate) => {
+      map.innerHTML = '';
+      picked = null;
+      COURSES[course].lectures.forEach(([lecture, objs], li) => {
+        const row = document.createElement('div');
+        row.className = 'lec';
+        row.innerHTML = `<span class="lec-name">${lecture}</span><span class="sqs"></span>`;
+        objs.forEach(([obj], oi) => {
+          const st = state[course][li][oi];
+          const sq = document.createElement('button');
+          sq.type = 'button';
+          sq.className = 'sq';
+          sq.dataset.l = li; sq.dataset.o = oi; sq.dataset.s = st;
+          sq.dataset.tip = `${obj} · ${STATUS[st]}`;
+          sq.setAttribute('aria-label', `${obj}: ${STATUS[st]}`);
+          sq.style.background = css(st);
+          sq.addEventListener('click', () => select(li, oi));
+          row.querySelector('.sqs').append(sq);
+        });
+        map.append(row);
+      });
+      if (animate && !reduced) anime({ targets: $$('.sq', map), scale: [0.6, 1], opacity: [0, 1], duration: 600, delay: anime.stagger(14), easing: 'easeOutBack' });
+      describe();
+      showScore(animate);
+    };
+
+    draw(false);
+  }
+
+  /* ------------------------------------------------------------- 3 tutor
+     Pick a question; the tutor answers from the sample slide with a numbered
+     citation. Click the number: the line it came from lights up and a line
+     draws from the number to it. */
+  const QUESTIONS = [
+    { q: 'What is caseous necrosis?', a: 'Cell death where the dead tissue turns soft and crumbly, like cheese. It’s the classic sign of tuberculosis', line: 1 },
+    { q: 'Which kind keeps the tissue’s outline?', a: 'Coagulative necrosis: the cells die, but the tissue keeps its shape, like a ghost outline of itself', line: 0 },
+    { q: 'What happens in liquefactive necrosis?', a: 'The dead tissue is broken down by enzymes and turns to fluid, often forming a cavity', line: 2 },
+  ];
+
+  function initTutor() {
+    const duo = $('#duo'), link = $('#link'), dot = $('#link-dot'), cite = $('#cite'), answer = $('#b-a-text'), question = $('#b-q');
+    const marks = $$('#tutor .mark');
+    let current = 0;
+
+    const clear = () => {
+      if (!reduced) anime.remove([link, dot]);
+      link.setAttribute('d', '');
+      dot.setAttribute('cx', -20);
+      dot.style.opacity = 0;
+      marks.forEach((m) => m.style.setProperty('--hl-scale', 0));
+      cite.classList.add('pulse');
+    };
+
+    /** From the citation number to the line it cites. */
+    const path = (target) => {
+      const box = duo.getBoundingClientRect();
+      const a = cite.getBoundingClientRect();
+      const b = target.getBoundingClientRect();
+      const x1 = a.left + a.width / 2 - box.left, y1 = a.top + a.height / 2 - box.top;
+      const x2 = b.left - box.left - 8, y2 = b.top + b.height / 2 - box.top;
+      if (b.top > a.bottom + 40) {
+        const xm = b.left + Math.min(b.width / 2, 90) - box.left, yt = b.top - box.top - 4;
+        return `M${x1} ${y1 + 9} C ${x1} ${y1 + 70}, ${xm} ${yt - 70}, ${xm} ${yt}`;
+      }
+      return `M${x1} ${y1 + 9} C ${x1 + 10} ${y1 + 110}, ${x2 - 110} ${y2 + 90}, ${x2} ${y2}`;
+    };
+
+    const follow = () => {
+      const target = marks[QUESTIONS[current].line];
+      cite.classList.remove('pulse');
+      nudgeDone('n-tutor');
+      marks.forEach((m) => m !== target && m.style.setProperty('--hl-scale', 0));
+      link.setAttribute('d', path(target));
+      dot.style.opacity = 1;
+      if (reduced) { target.style.setProperty('--hl-scale', 1); return; }
+      anime.remove([link, dot]);
+      const hl = { s: 0 };
+      anime.timeline({ easing: 'easeInOutSine' })
+        .add({ targets: cite, scale: [1, 1.3, 1], duration: 400 })
+        .add({ targets: link, strokeDashoffset: [anime.setDashoffset, 0], duration: 800 }, 100)
+        .add(alongPath(dot, link, { duration: 800 }), 100)
+        .add({ targets: hl, s: [0, 1], duration: 450, update: () => target.style.setProperty('--hl-scale', hl.s) }, 750);
+    };
+
+    const ask = (i) => {
+      current = i;
+      clear();
+      question.textContent = QUESTIONS[i].q;
+      answer.textContent = QUESTIONS[i].a;
+    };
+
+    cite.addEventListener('click', follow);
+    addEventListener('resize', () => { if (link.getAttribute('d')) follow(); });
+    ask(0);
+  }
+
+  /* ---------------------------------------------------------- 4 flashcards */
+  const CARDS = [
+    { term: 'Caseous necrosis', meaning: 'Cell death where the dead tissue turns soft and crumbly, like cheese. The classic sign of tuberculosis.', from: 'Caseous: soft, crumbly, "cheese-like"', page: 8 },
+    { term: 'Atrophy', meaning: 'A tissue or organ shrinks because its cells get smaller, such as a muscle that goes unused.', from: 'Cells get smaller, so the organ shrinks', page: 3 },
+    { term: 'First-pass effect', meaning: 'The liver clears part of an oral dose before it reaches the body, so less of it arrives.', from: 'Gut → portal vein → liver → body', page: 6 },
+    { term: 'Homeostasis', meaning: 'The body keeping its inside conditions steady, like temperature and blood sugar, despite changes outside.', from: 'Feedback keeps conditions in a narrow range', page: 2 },
+  ];
+
+  function initFlashcards() {
+    const stack = $('#stack');
+    let i = 0;
+    let busy = false;
+    let auto = null;
+
+    const make = (card) => {
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `<div class="face front"><span class="term">${card.term}</span><span class="hint">Click to turn</span></div>
+        <div class="face back"><span class="term" style="font:500 20px/1.2 var(--serif)">${card.term}</span><span class="meaning">${card.meaning}</span>
+        <div class="from"><b>Sample lecture · p. ${card.page}</b><span>${card.from}</span></div></div>`;
+      el.addEventListener('click', () => (el.dataset.turned ? next() : flip()));
+      return el;
+    };
+    /** Lay the stack out: the top card flat, the rest fanned behind it. */
+    const layout = (animate) => {
+      $$('.card', stack).forEach((el, depth) => {
+        const to = { translateY: depth * 14, scale: 1 - depth * 0.05, opacity: depth > 2 ? 0 : 1 };
+        el.style.zIndex = String(10 - depth);
+        if (animate && !reduced) anime({ targets: el, ...to, duration: 600, easing: 'easeOutExpo' });
+        else anime.set(el, to);
+      });
+    };
+    CARDS.forEach((card) => stack.append(make(card)));
+    layout(false);
+
+    const top = () => $('.card', stack);
+    /** 3D flip on the Y axis, showing the slide it came from. */
+    function flip() {
+      const el = top();
+      if (busy || !el || el.dataset.turned) return;
+      el.dataset.turned = '1';
+      if (reduced) { el.style.transform = 'rotateY(180deg)'; return; }
+      busy = true;
+      anime({ targets: el, rotateY: [0, 180], duration: 900, easing: 'easeInOutCubic', complete: () => (busy = false) });
+    }
+    /** Swipe the top card away; the next one comes forward; the old one rejoins the back. */
+    function next() {
+      const el = top();
+      if (busy || !el) return;
+      busy = true;
+      const done = () => {
+        i += 1;
+        el.remove();
+        delete el.dataset.turned;
+        const fresh = make(CARDS[(i + 3) % CARDS.length]);
+        stack.append(fresh);
+        layout(true);
+        busy = false;
+      };
+      if (reduced) return done();
+      anime({ targets: el, translateX: ['0%', '130%'], translateY: [0, -40], rotate: [0, 16], opacity: [1, 0], duration: 650, easing: 'easeInCubic', complete: done });
+    }
+    $('#flip').addEventListener('click', flip);
+    $('#next').addEventListener('click', next);
+
+    // While the section is on screen, it demonstrates itself: turn, pause, swipe.
+    onEnter($('#flashcards'), (section) => revealIn(section));
+    if (reduced) return;
+    whileVisible($('#flashcards'), (on) => {
+      clearInterval(auto);
+      if (!on) return;
+      setTimeout(flip, 900);
+      auto = setInterval(() => (top()?.dataset.turned ? next() : flip()), 2600);
+    });
+    stack.addEventListener('pointerenter', () => clearInterval(auto)); // a hand on the cards takes over
+  }
+
+  /* ------------------------------------------------------- 5 make it yours */
+  const SPOTS = {
+    // Where each block sits, as % of the box: [left, top, width, height].
+    stack: [[0, 0, 100, 38], [0, 42, 100, 27], [0, 73, 100, 27]],
+    side: [[0, 0, 48.5, 100], [51.5, 0, 48.5, 48], [51.5, 52, 48.5, 48]],
+  };
+  function initYours() {
+    const sample = $('#sample');
+    $('#fonts').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      $$('#fonts button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      if (reduced) { sample.style.fontFamily = `"${b.dataset.font}", Georgia, serif`; return; }
+      anime({ targets: sample, opacity: [1, 0], translateY: [0, -6], duration: 180, easing: 'easeInQuad', complete: () => {
+        sample.style.fontFamily = `"${b.dataset.font}", Georgia, serif`;
+        anime({ targets: sample, opacity: [0, 1], translateY: [6, 0], duration: 320, easing: 'easeOutQuad' });
+      } });
+    });
+
+    // Layout: the blocks slide and reshape between stacked and side by side.
+    const blocks = $$('#layout i');
+    let mode = 'stack';
+    const place = (to, animate = true) => {
+      mode = to;
+      $$('#layouts button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.layout === to)));
+      blocks.forEach((el, k) => {
+        const [l, t, w, h] = SPOTS[to][k];
+        const css = { left: `${l}%`, top: `${t}%`, width: `${w}%`, height: `${h}%` };
+        if (!animate || reduced) Object.assign(el.style, css);
+        else anime({ targets: el, ...css, duration: 900, delay: k * 70, easing: 'spring(1, 90, 14, 0)' });
+      });
+    };
+    place('stack', false);
+    let demo = null;
+    $('#layouts').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      clearInterval(demo);
+      place(b.dataset.layout);
+    });
+
+    // The record rolls in from the right edge, then spins for as long as you like.
+    const record = $('#record');
+    let spin = null;
+    onEnter($('#yours'), (section) => {
+      revealIn(section);
+      if (reduced) return;
+      demo = setInterval(() => place(mode === 'stack' ? 'side' : 'stack'), 2800);
+      const from = innerWidth - record.getBoundingClientRect().left;
+      const turns = from / (Math.PI * record.offsetWidth); // a real roll: distance ÷ circumference
+      anime({ targets: record, translateX: [from, 0], rotate: [`${turns}turn`, 0], duration: 1700, delay: 400, easing: 'easeOutCubic',
+        complete: () => { spin = anime({ targets: record, rotate: '1turn', duration: 3600, loop: true, easing: 'linear' }); } });
+    }, 0.35);
+
+    // Tap the record: the real thing, Spotify's free embed (loaded only on request).
+    let controller = null;
+    record.addEventListener('click', () => {
+      if (controller) return controller.togglePlay();
+      window.onSpotifyIframeApiReady = (api) => {
+        const mount = document.createElement('div');
+        $('#embed').append(mount);
+        api.createController(mount, { uri: 'spotify:playlist:37i9dQZF1DWZeKCadgRdKQ', width: '100%', height: 80 }, (c) => {
+          controller = c;
+          c.addListener('ready', () => c.play());
+          c.addListener('playback_update', (ev) => {
+            const playing = !ev.data.isPaused;
+            record.setAttribute('aria-label', playing ? 'Pause study music' : 'Play study music');
+          });
+        });
+      };
+      const s = document.createElement('script');
+      s.src = 'https://open.spotify.com/embed/iframe-api/v1';
+      document.body.append(s);
+    });
+  }
+
+  /* --------------------------------------------- 5b the plain-words calendar */
+  const SAYINGS = [
+    { text: 'quiz 4 friday at 2pm', day: 4, title: 'Quiz 4', time: '2:00 pm' },
+    { text: 'lab report due tuesday 11:59pm', day: 1, title: 'Lab report due', time: '11:59 pm' },
+    { text: 'study group wednesday 4 to 6', day: 2, title: 'Study group', time: '4–6 pm' },
+  ];
+  function initCalendarDemo() {
+    const week = $('#week');
+    const typed = $('#cal-typed');
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    days.forEach((d, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'd';
+      cell.innerHTML = `<b>${d}</b>`;
+      if (i === 0) cell.insertAdjacentHTML('beforeend', '<span class="ev" style="border-left-color:var(--ready)">Lecture<i>10:30</i></span>');
+      if (i === 3) cell.insertAdjacentHTML('beforeend', '<span class="ev" style="border-left-color:var(--getting)">Reading<i>ch. 4</i></span>');
+      week.append(cell);
+    });
+    const cells = [...week.children];
+    if (reduced) {
+      typed.textContent = SAYINGS[0].text;
+      cells[4].insertAdjacentHTML('beforeend', '<span class="ev">Quiz 4<i>2:00 pm</i></span>');
+      return;
+    }
+    let n = 0;
+    let running = false;
+    let timer = null;
+    const say = () => {
+      const s = SAYINGS[n++ % SAYINGS.length];
+      typed.textContent = '';
+      let i = 0;
+      timer = setInterval(() => {
+        typed.textContent = s.text.slice(0, ++i);
+        if (i < s.text.length) return;
+        clearInterval(timer);
+        // The event lands on its day with a little spring.
+        const ev = document.createElement('span');
+        ev.className = 'ev';
+        ev.innerHTML = `${s.title}<i>${s.time}</i>`;
+        cells[s.day].append(ev);
+        anime({ targets: ev, scale: [0.4, 1], opacity: [0, 1], translateY: [-24, 0], duration: 900, easing: 'spring(1, 90, 11, 0)' });
+        anime({ targets: cells[s.day], backgroundColor: ['#fde8df', '#f1f5f9'], duration: 1400, easing: 'easeOutQuad' });
+        timer = setTimeout(() => {
+          anime({ targets: ev, opacity: 0, scale: 0.8, duration: 350, easing: 'easeInQuad', complete: () => ev.remove() });
+          if (running) timer = setTimeout(say, 500);
+        }, 2600);
+      }, 55);
+    };
+    whileVisible($('#cal-demo'), (on) => {
+      running = on;
+      clearInterval(timer); clearTimeout(timer);
+      if (on) say();
+    });
+  }
+
+  /* ----------------------------------------------------------- 6 library map
+     The app's library map, in miniature, with sample courses: lectures from
+     three courses joined by the topics they share. Coloured by readiness (or
+     by course); find a topic to light up every lecture that teaches it and
+     read the passages; click a topic for how ready you are on it. It drifts,
+     parts around the cursor, drags, and pulses run along links between
+     courses. Sample content only: no real course material. */
+  const MAP = {
+    courses: [
+      ['phys', 'Physiology', '#7c5a8c'],
+      ['bioc', 'Biochemistry', '#3f6c8f'],
+      ['phar', 'Pharmacology', '#b08a3e'],
+    ],
+    // id, label, course, readiness (0..1, null = not read), sample passage, page
+    docs: [
+      ['d1', 'Membrane potential', 'phys', 0.74, 'The resting potential sits near −70 mV because the membrane is far more permeable to K⁺ than to Na⁺.', 4],
+      ['d2', 'Action potentials', 'phys', 0.41, 'Voltage-gated Na⁺ channels open first; K⁺ channels open later and bring the membrane back down.', 7],
+      ['d3', 'Osmosis & fluids', 'phys', 0.22, 'Water follows solute: it moves by osmosis toward the side with more dissolved particles.', 3],
+      ['d4', 'Enzyme kinetics', 'bioc', 0.58, 'Km is the substrate concentration at half of Vmax; a lower Km means a higher affinity.', 9],
+      ['d5', 'Metabolism', 'bioc', null, 'Glycolysis makes a net two ATP per glucose; oxidative phosphorylation makes most of the rest.', 12],
+      ['d6', 'Protein binding', 'bioc', 0.81, 'Binding affinity is set by how tightly a ligand fits its site, measured by the dissociation constant Kd.', 5],
+      ['d7', 'Drug absorption', 'phar', 0.33, 'Small, uncharged, lipid-soluble drugs cross membranes by passive diffusion most easily.', 6],
+      ['d8', 'Receptors & dose', 'phar', 0.47, 'Many drugs act on ion channels and receptors; potency and efficacy come from the dose–response curve.', 10],
+      ['d9', 'Drug elimination', 'phar', 0.15, 'Most drugs are cleared by first-order kinetics until the enzymes that clear them saturate.', 8],
+    ],
+    // id, label, lectures it is taught in, readiness, words it is found by
+    topics: [
+      ['t1', 'Ion channels', ['d1', 'd2', 'd8'], 0.52, 'ion channel sodium potassium na k gated'],
+      ['t2', 'Diffusion', ['d1', 'd3', 'd7'], 0.31, 'diffusion osmosis gradient membrane'],
+      ['t3', 'Michaelis–Menten', ['d4', 'd9'], 0.28, 'michaelis menten km vmax enzyme kinetics saturate'],
+      ['t4', 'Binding affinity', ['d6', 'd8'], 0.69, 'affinity binding kd receptor ligand'],
+      ['t5', 'ATP', ['d1', 'd5'], null, 'atp energy pump metabolism'],
+      ['t6', 'Gradients', ['d1', 'd2', 'd3'], 0.6, 'gradient electrochemical concentration'],
+      ['t7', 'Dose–response', ['d8', 'd9'], 0.2, 'dose response potency efficacy'],
+      ['t8', 'Osmosis', ['d3'], 0.25, 'osmosis water tonicity'],
+    ],
+    tries: ['ion channels', 'diffusion', 'enzymes'],
+  };
+  const MAP_SIZE = { course: 13, doc: 8.5, topic: 5 };
+  const READY_COLOUR = (v) => (v == null ? '#cbd5e1' : v < 0.35 ? '#d64545' : v < 0.7 ? '#e0a63a' : '#2f9e6b');
+  const MAP_BOX = { x0: 16, y0: 16, x1: 584, y1: 404 };
+
+  function initMap() {
+    const svg = $('#graph');
+    const card = $('#map-card');
+    const NS = 'http://www.w3.org/2000/svg';
+    const make = (tag, attrs, parent) => {
+      const el = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      parent.append(el);
+      return el;
+    };
+    const courseColour = Object.fromEntries(MAP.courses.map(([id, , c]) => [id, c]));
+    const edgesG = $('#g-edges'), pulseG = $('#g-pulses'), nodesG = $('#g-nodes');
+
+    const nodes = [];
+    const add = (n) => {
+      const i = nodes.length;
+      const a = (i / 20) * Math.PI * 2;
+      Object.assign(n, { x: 300 + Math.cos(a) * (90 + (i % 4) * 40), y: 210 + Math.sin(a) * (70 + (i % 3) * 36), vx: 0, vy: 0, phase: Math.random() * 6.28, links: new Set() });
+      n.g = make('g', { class: `n ${n.type}` }, nodesG);
+      n.dot = make('circle', { class: 'dot', r: reduced ? n.r : 0 }, n.g);
+      n.text = make('text', { class: 'lbl', x: n.r + 5, y: 4 }, n.g);
+      n.text.textContent = n.label;
+      nodes.push(n);
+      return n;
+    };
+    MAP.courses.forEach(([id, label]) => add({ id, label, type: 'course', r: MAP_SIZE.course, course: id }));
+    MAP.docs.forEach(([id, label, course, ready, passage, page]) => add({ id, label, type: 'doc', r: MAP_SIZE.doc, course, ready, passage, page }));
+    MAP.topics.forEach(([id, label, docs, ready, words]) => add({ id, label, type: 'topic', r: MAP_SIZE.topic + docs.length * 0.8, docs, ready, words }));
+    const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+    const edges = [];
+    const link = (a, b, kind) => {
+      const e = { a: byId[a], b: byId[b], kind };
+      e.a.links.add(e.b); e.b.links.add(e.a);
+      e.cross = kind === 'covers' && e.b.docs && new Set(e.b.docs.map((d) => byId[d].course)).size > 1;
+      e.el = make('line', { class: `e${e.cross ? ' cross' : ''}` }, edgesG);
+      e.rest = kind === 'contains' ? 62 : 48;
+      edges.push(e);
+    };
+    MAP.docs.forEach(([id, , course]) => link(course, id, 'contains'));
+    MAP.topics.forEach(([id, , docs]) => docs.forEach((d) => link(d, id, 'covers')));
+
+    /* Colour: by readiness (the default) or by course. */
+    let by = 'ready';
+    const fill = (n) => {
+      if (n.type === 'course') return courseColour[n.course];
+      if (by === 'course') return n.type === 'doc' ? courseColour[n.course] : '#e9a58c';
+      return READY_COLOUR(n.ready);
+    };
+    const paint = () => {
+      nodes.forEach((n) => n.dot.setAttribute('fill', fill(n)));
+      const key = by === 'ready'
+        ? [['#2f9e6b', 'Ready'], ['#e0a63a', 'Getting there'], ['#d64545', 'Shaky'], ['#cbd5e1', 'Not read yet']]
+        : MAP.courses.map(([, label, c]) => [c, label]).concat([['#e9a58c', 'Topic']]);
+      $('#map-key').innerHTML = key.map(([c, l]) => `<li><i style="background:${c}"></i>${l}</li>`).join('');
+    };
+    paint();
+    $$('#map .seg button').forEach((b) =>
+      b.addEventListener('click', () => {
+        by = b.dataset.by;
+        $$('#map .seg button').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+        paint();
+        if (!reduced) anime({ targets: nodes.filter((n) => n.type !== 'course').map((n) => n.dot), r: (el, i) => { const n = nodes.filter((m) => m.type !== 'course')[i]; return [n.r * 1.5, n.r]; }, duration: 600, delay: anime.stagger(18), easing: 'easeOutElastic(1, .6)' });
+      }),
+    );
+
+    /* Layout: nodes push apart, links pull together, a gentle sway. */
+    let hot = null, drag = null, mouse = null;
+    const step = (t) => {
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        if (a === drag) continue;
+        for (let j = 0; j < nodes.length; j++) {
+          if (i === j) continue;
+          const b = nodes[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const d2 = Math.max(dx * dx + dy * dy, 30);
+          const push = 900 / d2;
+          a.vx += dx * push * 0.05; a.vy += dy * push * 0.05;
+        }
+        a.vx += (300 - a.x) * 0.004; a.vy += (210 - a.y) * 0.006;
+        if (mouse && !drag && a !== hot) {
+          const mx = a.x - mouse.x, my = a.y - mouse.y, md = Math.hypot(mx, my);
+          if (md < 80 && md > 0.1) { const k = (1 - md / 80) * 0.9; a.vx += (mx / md) * k; a.vy += (my / md) * k; }
+        }
+        a.vx += Math.cos(t / 1900 + a.phase) * 0.02; a.vy += Math.sin(t / 2200 + a.phase) * 0.02;
+      }
+      edges.forEach((e) => {
+        const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, d = Math.hypot(dx, dy) || 1;
+        const f = (d - e.rest) * 0.014, fx = (dx / d) * f, fy = (dy / d) * f;
+        if (e.a !== drag) { e.a.vx += fx; e.a.vy += fy; }
+        if (e.b !== drag) { e.b.vx -= fx; e.b.vy -= fy; }
+      });
+      nodes.forEach((n) => {
+        if (n === drag) return;
+        n.vx *= 0.8; n.vy *= 0.8;
+        n.x = Math.min(MAP_BOX.x1 - 70, Math.max(MAP_BOX.x0 + 10, n.x + n.vx));
+        n.y = Math.min(MAP_BOX.y1 - 10, Math.max(MAP_BOX.y0 + 16, n.y + n.vy));
+      });
+    };
+    const draw = () => {
+      nodes.forEach((n) => n.g.setAttribute('transform', `translate(${n.x.toFixed(1)} ${n.y.toFixed(1)})`));
+      edges.forEach((e) => {
+        e.el.setAttribute('x1', e.a.x.toFixed(1)); e.el.setAttribute('y1', e.a.y.toFixed(1));
+        e.el.setAttribute('x2', e.b.x.toFixed(1)); e.el.setAttribute('y2', e.b.y.toFixed(1));
+      });
+    };
+    for (let k = 0; k < 320; k++) step(k * 16);
+    draw();
+
+    /* Lighting: a set of nodes, with the links between them; the rest steps back. */
+    const light = (set) => {
+      svg.classList.toggle('lit', Boolean(set));
+      nodes.forEach((n) => n.g.classList.toggle('on', Boolean(set) && set.has(n)));
+      edges.forEach((e) => e.el.classList.toggle('on', Boolean(set) && set.has(e.a) && set.has(e.b)));
+    };
+    let found = null, chosen = null;
+    const restLight = () => light(chosen ? new Set([chosen, ...chosen.links]) : found);
+    const hover = (n) => {
+      hot = n;
+      if (n) light(new Set([n, ...n.links]));
+      else restLight();
+    };
+
+    /* A topic, opened: where it is taught, how ready, and Practise it. */
+    const pop = $('#map-pop');
+    const openTopic = (n) => {
+      chosen = n;
+      if (!n) { pop.hidden = true; restLight(); return; }
+      const docs = n.type === 'topic' ? n.docs.map((d) => byId[d]) : [...n.links].filter((m) => m.type === 'doc');
+      const courses = new Set(docs.map((d) => d.course)).size;
+      const pct = n.ready == null ? null : Math.round(n.ready * 100);
+      pop.innerHTML = `<span class="k">${n.type === 'topic' ? 'Topic' : n.type === 'doc' ? 'Lecture' : 'Course'}</span><h4>${n.label}</h4>`
+        + (n.type === 'course' ? `<p class="in">${docs.length} lectures</p>` : n.type === 'topic' ? `<p class="in">In ${docs.length} lecture${docs.length > 1 ? 's' : ''}${courses > 1 ? `, across ${courses} courses` : ''}</p>` : `<p class="in">${MAP.courses.find(([id]) => id === n.course)[1]} · p. ${n.page}</p>`)
+        + (n.type === 'course' ? '' : pct == null ? '<p class="in">Not read for objectives yet</p>' : `<div class="bar"><i style="width:${Math.max(4, pct)}%;background:${READY_COLOUR(n.ready)}"></i></div><p class="in">${pct}% exam-ready</p>`)
+        + (n.type === 'course' ? '' : '<button type="button" class="go">✦ Practise it</button>');
+      pop.hidden = false;
+      light(new Set([n, ...n.links]));
+      if (!reduced) anime({ targets: pop, opacity: [0, 1], translateY: [8, 0], duration: 350, easing: 'easeOutCubic' });
+      pop.querySelector('.go')?.addEventListener('click', (event) => {
+        event.currentTarget.outerHTML = `<p class="said">In Nota this starts a short quiz on ${n.label.toLowerCase()}, and the colour moves as you answer.</p>`;
+      });
+    };
+
+    nodes.forEach((n) => {
+      n.g.addEventListener('pointerenter', () => { if (!drag) hover(n); });
+      n.g.addEventListener('pointerleave', () => { if (!drag) hover(null); });
+      n.g.addEventListener('pointerdown', (event) => {
+        drag = n; n.moved = false; n.from = [event.clientX, event.clientY]; n.g.setPointerCapture(event.pointerId);
+      });
+      n.g.addEventListener('pointerup', () => {
+        if (drag === n && !n.moved) openTopic(chosen === n ? null : n);
+      });
+    });
+    const toSvg = (event) => {
+      const pt = svg.createSVGPoint(); pt.x = event.clientX; pt.y = event.clientY;
+      return pt.matrixTransform(svg.getScreenCTM().inverse());
+    };
+    svg.addEventListener('pointerleave', () => (mouse = null));
+    svg.addEventListener('pointermove', (event) => {
+      mouse = toSvg(event);
+      if (!drag) return;
+      // A click jitters a pixel or two; only a real pull is a drag.
+      if (!drag.moved && Math.hypot(event.clientX - drag.from[0], event.clientY - drag.from[1]) < 4) return;
+      drag.moved = true;
+      drag.x = Math.min(MAP_BOX.x1 - 70, Math.max(MAP_BOX.x0 + 10, mouse.x));
+      drag.y = Math.min(MAP_BOX.y1 - 10, Math.max(MAP_BOX.y0 + 16, mouse.y));
+    });
+    addEventListener('pointerup', () => { drag = null; });
+    svg.addEventListener('click', (event) => { if (event.target === svg) openTopic(null); });
+
+    /* Find: the topics and lectures a search names light up, and their passages appear. */
+    const hits = $('#map-hits');
+    const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const find = (q) => {
+      nudgeDone('n-map');
+      openTopic(null);
+      const words = q.toLowerCase().split(/\s+/).filter((w) => w.length > 2).map((w) => w.replace(/s$/, ''));
+      if (!words.length) { found = null; hits.hidden = true; restLight(); return; }
+      // Whole words (or the start of one), so "ion" does not find "absorption".
+      const clean = words.map((w) => w.replace(/[^a-z0-9]/g, '')).filter(Boolean);
+      const says = (text) => clean.some((w) => new RegExp(`\\b${w}`, 'i').test(text));
+      const topics = nodes.filter((n) => n.type === 'topic' && (says(n.words) || says(n.label)));
+      const docs = nodes.filter((n) => n.type === 'doc' && (topics.some((t) => t.docs.includes(n.id)) || says(n.label)));
+      found = new Set([...topics, ...docs]);
+      restLight();
+      const mark = (text) => clean.reduce((t, w) => t.replace(new RegExp(`\\b(${w}\\w*)`, 'gi'), '<mark>$1</mark>'), esc(text));
+      hits.innerHTML = `<p class="h-q">${docs.length ? `${docs.length} lecture${docs.length > 1 ? 's' : ''} · searched on your computer, free` : 'Nothing in this sample library matches that'}</p>`
+        + docs.slice(0, 2).map((d) => `<div class="hit"><span class="pg">p. ${d.page}</span><b>${esc(d.label)}</b><p>${mark(d.passage)}</p></div>`).join('');
+      hits.hidden = false;
+      if (!reduced) {
+        anime({ targets: hits, opacity: [0, 1], translateY: [8, 0], duration: 350, easing: 'easeOutCubic' });
+        anime({ targets: [...found].map((n) => n.dot), r: (el, i) => { const n = [...found][i]; return [n.r * 1.8, n.r]; }, duration: 700, delay: anime.stagger(40), easing: 'easeOutElastic(1, .5)' });
+      }
+    };
+    const input = $('#map-q');
+    let typing = null;
+    input.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(() => find(input.value), 180); });
+    $('#map-find').addEventListener('submit', (event) => { event.preventDefault(); find(input.value); });
+    $('#map-tries').innerHTML = MAP.tries.map((t) => `<button type="button">${t}</button>`).join('');
+    $$('#map-tries button').forEach((b) => b.addEventListener('click', () => { input.value = b.textContent; find(b.textContent); }));
+
+    if (reduced) return;
+
+    /* Motion: drifting, and pulses along the links between courses. */
+    const pulses = [];
+    const pulse = (e, color, back) => pulses.push({ e, back, t0: performance.now(), ms: 1100, el: make('circle', { r: 2.6, fill: color }, pulseG) });
+    let alive = false, timer = null;
+    const frame = (t) => {
+      if (alive) {
+        step(t);
+        draw();
+        for (let k = pulses.length - 1; k >= 0; k--) {
+          const p = pulses[k];
+          let u = (t - p.t0) / p.ms;
+          if (u >= 1) { p.el.remove(); pulses.splice(k, 1); continue; }
+          if (p.back) u = 1 - u;
+          p.el.setAttribute('cx', p.e.a.x + (p.e.b.x - p.e.a.x) * u); p.el.setAttribute('cy', p.e.a.y + (p.e.b.y - p.e.a.y) * u);
+        }
+      }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    const cross = edges.filter((e) => e.cross);
+    onEnter($('#map'), (section) => {
+      revealIn(section);
+      const order = ['course', 'doc', 'topic'];
+      const sorted = [...nodes].sort((x, y) => order.indexOf(x.type) - order.indexOf(y.type));
+      anime({ targets: sorted.map((n) => n.dot), r: (el, i) => [0, sorted[i].r], duration: 900, delay: anime.stagger(40, { start: 250 }), easing: 'spring(1, 90, 10, 0)' });
+      anime({ targets: sorted.map((n) => n.text), opacity: [0, 1], duration: 600, delay: anime.stagger(40, { start: 500 }), easing: 'easeOutQuad' });
+      anime({ targets: edges.map((e) => e.el), opacity: [0, 1], duration: 700, delay: anime.stagger(20, { start: 700 }), easing: 'easeOutQuad' });
+    }, 0.2);
+    whileVisible(svg, (on) => {
+      alive = on;
+      clearInterval(timer);
+      if (on) timer = setInterval(() => pulse(cross[Math.floor(Math.random() * cross.length)], '#d95d39', Math.random() < 0.5), 520);
+    });
+  }
+
+  /* ----------------------------------------------------------- 7 privacy
+     The computer, what lives in it, and the one wire out: a question goes to
+     your AI provider and the answer comes back. Nothing else leaves. */
+  function initPrivacy() {
+    const items = $('#v-items');
+    const NS = 'http://www.w3.org/2000/svg';
+    const things = ['Lectures & recordings', 'Notes', 'Flashcards', 'Library map', 'Search index'];
+    things.forEach((label, i) => {
+      // Placed by the outer group; the inner one is free to animate.
+      const at = document.createElementNS(NS, 'g');
+      at.setAttribute('transform', `translate(34 ${78 + i * 40})`);
+      at.innerHTML = `<g class="v-chip"><rect width="${label.length * 7.4 + 34}" height="30" rx="15"/><circle cx="15" cy="15" r="4"/><text x="27" y="19.5">${label}</text></g>`;
+      items.append(at);
+    });
+    if (reduced) return;
+    const wire = $('#v-wire');
+    const pulses = $('#v-pulses');
+    const send = (colour, back) => {
+      const dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('r', '5');
+      dot.setAttribute('fill', colour);
+      pulses.append(dot);
+      const len = wire.getTotalLength();
+      const t = { v: 0 };
+      anime({ targets: t, v: [0, 1], duration: 1300, easing: 'easeInOutSine', update: () => { const pt = wire.getPointAtLength((back ? 1 - t.v : t.v) * len); dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y); }, complete: () => dot.remove() });
+    };
+    let timer = null;
+    onEnter($('#private'), (section) => {
+      revealIn(section);
+      anime({ targets: '#v-items .v-chip', opacity: [0, 1], translateX: [-10, 0], duration: 600, delay: anime.stagger(110, { start: 300 }), easing: 'easeOutCubic' });
+    }, 0.25);
+    whileVisible($('#vault'), (on) => {
+      clearInterval(timer);
+      if (!on) return;
+      const ask = () => { send('#142033', false); setTimeout(() => send('#2f9e6b', true), 1400); };
+      ask();
+      timer = setInterval(ask, 3600);
+    });
+  }
+
+  /* --------------------------------------------------------- the notes
+     Three hand-written notes, each with an arrow drawn to what it means. The
+     arrow is measured from the note to its target every time the layout
+     changes, so it always lands on the right thing. Each fades once its part
+     has been used. */
+  const NUDGES = [
+    { id: 'n-ready', text: 'click a square', target: () => $$('#r-map .sq')[2], side: 'above', gap: 22 },
+    { id: 'n-tutor', text: 'tap the 1', target: () => $('#cite'), side: 'below', gap: 48 },
+    { id: 'n-map', text: 'try a search', target: () => $('#map-tries button'), side: 'below', gap: 34 },
+  ];
+  function nudgeDone(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('gone');
+  }
+  function placeNudges() {
+    const W = document.documentElement.clientWidth;
+    NUDGES.forEach((n) => {
+      let el = document.getElementById(n.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'nudge';
+        el.id = n.id;
+        el.setAttribute('aria-hidden', 'true');
+        el.innerHTML = `<em>${n.text}</em><svg><path class="shaft" /><path class="head" /></svg>`;
+        document.body.append(el);
+      }
+      const target = n.target();
+      if (!target) return;
+      const t = target.getBoundingClientRect();
+      const em = el.querySelector('em');
+      const tw = em.offsetWidth, th = em.offsetHeight;
+      const tx = t.left + scrollX + t.width / 2, ty = t.top + scrollY;           // target's top centre (page coordinates)
+      let lx, ly, x1, y1, x2, y2;
+      if (n.side === 'above') {
+        // The note sits above the target (or above its container's top edge).
+        const top = n.edge ? $(n.edge).getBoundingClientRect().top + scrollY - 6 : ty;
+        ly = top - n.gap - th - (n.edge ? 26 : 0);
+        lx = Math.min(W - tw - 16, Math.max(16, tx - tw - 14));
+        x1 = lx + tw + 6; y1 = ly + th * 0.6;
+        x2 = tx; y2 = ty - 6;
+      } else {
+        const bottom = t.bottom + scrollY;
+        ly = bottom + n.gap;
+        lx = Math.min(W - tw - 16, Math.max(16, tx + 18));
+        x1 = lx - 6; y1 = ly + th * 0.4;
+        x2 = tx; y2 = bottom + 6;
+      }
+      em.style.left = `${lx}px`;
+      em.style.top = `${ly}px`;
+      // A hand-drawn curve from the note to the target, and an arrowhead along its last direction.
+      const mx = (x1 + x2) / 2 + (y2 - y1) * 0.25, my = (y1 + y2) / 2 - (x2 - x1) * 0.25;
+      el.querySelector('.shaft').setAttribute('d', `M${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`);
+      const ang = Math.atan2(y2 - my, x2 - mx), L = 11;
+      const a1 = ang + Math.PI - 0.5, a2 = ang + Math.PI + 0.5;
+      el.querySelector('.head').setAttribute('d', `M${x2 + L * Math.cos(a1)} ${y2 + L * Math.sin(a1)} L ${x2} ${y2} L ${x2 + L * Math.cos(a2)} ${y2 + L * Math.sin(a2)}`);
+    });
+  }
+  function initNudges() {
+    placeNudges();
+    document.fonts?.ready.then(placeNudges);
+    let timer = null;
+    addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(placeNudges, 120); });
+    // The map settles over its first second; place its note again once it has.
+    setTimeout(placeNudges, 1200);
+  }
+
+  /* ---------------------------------------------------------------- the rest */
+  /* ------------------------------------------------------------ download
+     Always the newest release: every release uploads the installer again as
+     Nota-Setup.exe, so the link never changes, and the version is read from
+     GitHub. Clicking opens the guide, because browsers hold back unsigned
+     installers as a .tmp file until the student chooses to keep them. */
+  function initDownload() {
+    const REPO = 'aaronsu0105/nota';
+    fetch(`https://api.github.com/repos/${REPO}/releases?per_page=10`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((releases) => {
+        const zip = releases.filter((r) => !r.draft).flatMap((r) => r.assets).find((a) => a.name === 'Nota-Setup.zip');
+        if (!zip) return;
+        $('#zip-link').href = zip.browser_download_url;
+        $('#zip-dl').hidden = false;
+      })
+      .catch(() => {});
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((release) => { if (release?.tag_name) $('#version').textContent = release.tag_name.replace(/^v/, ''); })
+      .catch(() => {});
+    $('#download-link').addEventListener('click', () => {
+      const help = $('#dl-help');
+      help.hidden = false;
+      setTimeout(() => help.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+    });
+  }
+
+  function initRest() {
+    const nav = $('#nav');
+    addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+    onEnter($('#download'), (section) => revealIn(section));
+    onEnter($('#faq'), (section) => revealIn(section));
+  }
+
+  initHero();
+  initReadiness();
+  initTutor();
+  initFlashcards();
+  initYours();
+  initCalendarDemo();
+  initMap();
+  initPrivacy();
+  initDownload();
+  initRest();
+  initNudges();
+  </script>
+</body>
+</html>
