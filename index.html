@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nota, where your semester lives</title>
+<meta name="description" content="Nota is a calendar for your courses that also keeps every lecture, outline, grade and flashcard in one place, so every date and every page is a search away. Free for Windows." />
+<meta property="og:title" content="Nota, where your semester lives" />
+<meta property="og:description" content="A calendar that keeps every lecture, test date, grade and flashcard in one place. Free for Windows." />
+<meta property="og:image" content="assets/buddy-happy.webp" />
+<link rel="icon" href="assets/icon-64.png" />
+<link rel="apple-touch-icon" href="assets/icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="preload" as="image" href="assets/buddy-happy.webp" />
+<link rel="stylesheet" href="site.css?v=mwmfp32g" />
+</head>
+<body>
+<div class="sky" aria-hidden="true"><i class="dawn"></i><i class="day"></i><i class="golden"></i><i class="dusk"></i></div>
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="nav glass" aria-label="Nota">
+  <a class="brand" href="#top" aria-label="Nota, back to the top"><img src="assets/buddy-happy-sm.webp" alt="" width="24" height="30" /><span class="wordmark">nota</span></a>
+  <a class="link" href="#calendar">Calendar</a>
+  <a class="link" href="#search">Search</a>
+  <a class="link" href="#island">Island</a>
+  <a class="link" href="#cards">Flashcards</a>
+  <a class="link" href="#everything">Everything</a>
+  <a class="pill black" href="https://github.com/aaronsu0105/nota/releases/latest/download/Nota-Setup.exe">Download</a>
+</nav>
+
+<main id="top">
+<!-- ================================================================== hero -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="halo" aria-hidden="true"></div>
+  <div class="hero-inner">
+    <p class="kicker">Hi, I keep your semester</p>
+    <h1 id="hero-title">Where your <em>whole</em> semester lives</h1>
+    <p class="lede">Your classes, due dates, slides, grades and flashcards, all in one calm place.</p>
+
+    <div class="stage" id="stage">
+      <div class="tiles" aria-hidden="true">
+        <div class="tile glass" style="left:0%;top:20%;--rot:-6deg;--delay:-1s" data-tile="calendar">
+          <span class="ic" style="--c:#c9532f"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="3.5" width="14" height="12" rx="3" stroke="#fff" stroke-width="1.5"/><path d="M2 7.5h14" stroke="#fff" stroke-width="1.5"/></svg></span>
+          <span><b data-tile-title>Calendar</b><small data-tile-sub>what’s due this week</small></span>
+        </div>
+        <div class="tile glass" style="left:11%;top:-3%;--rot:4deg;--delay:-3s">
+          <span class="ic" style="--c:#343a6a"><svg viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="4.6" stroke="#fff" stroke-width="1.6"/><path d="M11.5 11.5L15 15" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span><b>Search</b><small>find any slide fast</small></span>
+        </div>
+        <div class="tile glass" style="right:9%;top:-5%;--rot:-4deg;--delay:-5s">
+          <span class="ic" style="--c:#f3a77c"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="2.5" width="10" height="13" rx="2.5" fill="#fff"/></svg></span>
+          <span><b>Flashcards</b><small>made from your notes</small></span>
+        </div>
+        <div class="tile glass" style="right:0%;top:20%;--rot:6deg;--delay:-2s">
+          <span class="ic" style="--c:#5f8a52"><svg viewBox="0 0 18 18" fill="none"><path d="M3.5 14V8M7.5 14V4M11.5 14V9M15 14V6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span><b>Grades</b><small>what you need on the final</small></span>
+        </div>
+        <div class="tile glass" style="left:-3%;top:52%;--rot:5deg;--delay:-4s">
+          <span class="ic" style="--c:#8f7bd6"><svg viewBox="0 0 18 18" fill="none"><path d="M3 14c3-1 3-6 6-6s3 4 6 3" stroke="#fff" stroke-width="1.6" stroke-dasharray="1.5 2.5" stroke-linecap="round"/></svg></span>
+          <span><b>Plan</b><small>a plan before each test</small></span>
+        </div>
+        <div class="tile glass" style="right:-3%;top:54%;--rot:-5deg;--delay:-6s">
+          <span class="ic" style="--c:#4a2742"><svg viewBox="0 0 18 18" fill="none"><path d="M2.5 12c3.5-4 9.5-4 13 0-3.5 2-9.5 2-13 0z" fill="#a7c497"/><path d="M7 9h4l-.6 2H7.6z" fill="#f3a77c"/></svg></span>
+          <span><b>Island</b><small>see how ready you are</small></span>
+        </div>
+        <div class="tile glass" style="left:-8%;top:76%;--rot:-3deg;--delay:-7s">
+          <span class="ic" style="--c:#d98e8f"><svg viewBox="0 0 18 18" fill="none"><path d="M3 5h4.5l1.5 2H15v7.5a1 1 0 01-1 1H4a1 1 0 01-1-1z" fill="#fff"/></svg></span>
+          <span><b>Library</b><small>your slides and recordings</small></span>
+        </div>
+        <div class="tile glass" style="right:-8%;top:78%;--rot:3deg;--delay:-8s">
+          <span class="ic" style="--c:#2a2f55"><svg viewBox="0 0 18 18" fill="none"><path d="M3 4h12v8H8.5L5 15v-3H3z" fill="#fff"/></svg></span>
+          <span><b>Chat</b><small>ask about your notes</small></span>
+        </div>
+      </div>
+      <div class="buddy-wrap" id="buddy"><img src="assets/buddy-happy.webp" alt="Nota's buddy: a small felted plush with a leaf sprout, smiling" width="600" height="620" id="buddy-img" /><img class="fade" src="assets/buddy-happy.webp" alt="" aria-hidden="true" id="buddy-fade" hidden /></div>
+      <form class="ask glass" id="ask" autocomplete="off">
+        <label class="sr" for="ask-input">Tell me something you have coming up, with a day and a time</label>
+        <input id="ask-input" placeholder="What’s coming up? Like bio quiz fri 2pm" />
+        <button class="go" aria-label="Put it in my week"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </form>
+    </div>
+    <p class="read" id="ask-read" aria-live="polite">Try “study group sat 3pm” or “lab report due sunday midnight”.</p>
+    <div class="hero-cta">
+      <a class="pill black" href="https://github.com/aaronsu0105/nota/releases/latest/download/Nota-Setup.exe">Download for Windows</a>
+      <small>Free, and your files stay on your laptop</small>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== calendar -->
+<section class="chapter" id="calendar" aria-labelledby="cal-title">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="kicker">Your week</p>
+        <h2 class="big-h" id="cal-title">Every date, <em>right where you'll see it</em></h2>
+      </div>
+      <p class="line">Type it the way you'd say it. Drag it when plans change.</p>
+    </div>
+
+    <div class="cal-shell glass" id="cal">
+      <div class="cal-top">
+        <div class="win-nav">
+          <button type="button" id="wk-prev" aria-label="Show earlier days"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M8.5 3L4.5 7l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <h3 id="cal-range" aria-live="polite">Nov 16 to 20</h3>
+          <button type="button" id="wk-next" aria-label="Show later days"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M5.5 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <span class="sample">A sample week</span>
+        <form class="add" id="add" autocomplete="off">
+          <label class="sr" for="add-input">Add something to the week</label>
+          <input id="add-input" placeholder="Add something, like lab report due sunday midnight" />
+          <button class="pill black">Add</button>
+        </form>
+      </div>
+      <div class="guess" id="guess" aria-live="polite"></div>
+      <div class="week" id="week"></div>
+      <p class="hint">Drag a block to move it. Anything you add can be taken out with × or the Delete key.</p>
+    </div>
+
+    <div class="ladder">
+      <div>
+        <p class="kicker">Reminders that grow</p>
+        <h3>You won't miss it</h3>
+        <input type="range" min="0" max="7" step="1" value="0" class="range" id="ladder" aria-label="How close the lab report is" />
+        <div class="range-labels"><span>A week away</span><span>Due today</span><span>A day late</span></div>
+      </div>
+      <div class="alarm glass lvl-0" id="alarm" aria-live="polite">
+        <div class="bar" id="alarm-bar"></div>
+        <p class="says" id="alarm-says"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ search -->
+<section class="chapter" id="search" aria-labelledby="search-title">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="kicker">Search</p>
+        <h2 class="big-h" id="search-title">The right page, <em>in seconds</em></h2>
+      </div>
+      <p class="line">Ask a question and land on the exact slide or page it’s on.</p>
+    </div>
+    <div class="search-box glass">
+      <svg width="22" height="22" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M13.5 13.5L18 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <label class="sr" for="q">Search the sample files</label>
+      <input id="q" placeholder="Try “when’s the midterm?”" />
+      <span class="sample">Sample files</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="results" id="results" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ================================================================ island -->
+<section class="island" id="island" aria-labelledby="island-title">
+  <div class="island-stick wrap">
+    <div class="island-copy">
+      <p class="kicker">The study island</p>
+      <h2 class="big-h" id="island-title">Your semester, <em>at a glance</em></h2>
+      <p class="line">A list of checkboxes can't tell you how ready you are, or what to do next. The island can. Green where you know it, mist where you haven't read, a flag for whatever is coming.</p>
+      <div class="versus glass" aria-label="The same semester as a list">
+        <span class="sample">As a list</span>
+        <ul>
+          <li><i></i>Bio 101, lecture 8</li>
+          <li><i class="done"></i>Chem 101, unit 3</li>
+          <li><i></i>Pharm 201, lecture 2</li>
+          <li><i></i>Weekly quiz</li>
+        </ul>
+        <p>Done, maybe. But ready?</p>
+      </div>
+      <div class="explore-row">
+        <button class="pill black" id="explore" type="button">Explore the island</button>
+        <small>The real island from the app, with made-up courses</small>
+      </div>
+    </div>
+    <div class="island-view" id="island-view">
+      <img src="assets/island-dawn.webp" alt="Nota's study island at dawn: a floating hill with houses, trees, windmills and flags for upcoming quizzes" data-phase="0" loading="lazy" />
+      <img src="assets/island-golden.webp" alt="" data-phase="1" loading="lazy" />
+      <img src="assets/island-dusk.webp" alt="" data-phase="2" loading="lazy" />
+      <img src="assets/island-night.webp" alt="" data-phase="3" loading="lazy" />
+      <div class="hot-tip" id="hot-tip" style="opacity:0"></div>
+      <span class="island-time" id="island-time">Dawn</span>
+      <span class="as-place">As a place</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ flashcards -->
+<section class="chapter" id="cards" aria-labelledby="cards-title">
+  <div class="wrap cards-area">
+    <div>
+      <p class="kicker">Flashcards</p>
+      <h2 class="big-h" id="cards-title">Cards you <em>wrote</em>, kept close</h2>
+      <p class="line">Each one remembers the slide it came from, and comes back right before you'd forget it. The pictures in your slides become cards too.</p>
+      <div class="handoff"><img src="assets/buddy-thinking-sm.webp" alt="" />Tap the card to turn it over.</div>
+    </div>
+    <div class="deck-col">
+      <div class="deck" id="deck" tabindex="0" role="button" aria-label="A sample flashcard. Enter or Space turns it over, 1 to 4 rates it."></div>
+      <div class="deck-foot"><span id="deck-count">Card 1 of 4</span><button class="next" id="next" type="button">Next card</button></div>
+      <div class="rates" id="rate">
+        <button data-r="0">Again<small>in 10 min</small></button>
+        <button data-r="1">Hard<small>tomorrow</small></button>
+        <button data-r="2">Good<small>in 3 days</small></button>
+        <button data-r="3">Easy<small>next week</small></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== grades & plan -->
+<section class="chapter" id="grades" aria-labelledby="grades-title">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="kicker">Grades and the plan</p>
+        <h2 class="big-h" id="grades-title">What the <em>final</em> has to be</h2>
+      </div>
+      <p class="line">Pick the grade you want. Nota works out what you need on the final, then plans the week before it.</p>
+    </div>
+    <div class="gp">
+      <div class="panel">
+        <h3>Chem 101 <span class="sample">Sample marks</span></h3>
+        <div class="marks" id="marks"></div>
+        <label class="mark"><span>Your goal for the course</span><span></span><output id="target-out">80%</output></label>
+        <input type="range" class="range" id="target" min="55" max="95" value="80" aria-label="Your goal for the course" />
+        <div class="need"><span class="big" id="need">81%</span><p id="need-text"></p></div>
+      </div>
+      <div class="panel">
+        <h3>The week before <span class="sample">Sample plan</span></h3>
+        <svg class="route" viewBox="0 0 520 80" aria-hidden="true">
+          <path d="M65 48 C 110 18 150 66 195 52 S 280 22 325 42 S 410 66 455 40" fill="none" stroke="#8a7f86" stroke-width="2.5" stroke-dasharray="2 8" stroke-linecap="round"/>
+          <circle cx="65" cy="48" r="8" fill="#fff" stroke="#8a7f86" stroke-width="2.5"/><circle cx="195" cy="52" r="8" fill="#fff" stroke="#8a7f86" stroke-width="2.5"/><circle cx="325" cy="42" r="8" fill="#fff" stroke="#8a7f86" stroke-width="2.5"/>
+          <path d="M455 44 V12 l18 7 -18 7" fill="#c9532f" stroke="#c9532f" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <ol class="steps" aria-label="A study route before the midterm">
+          <li><b>Mon</b>Read L7</li><li><b>Wed</b>30 cards</li><li><b>Fri</b>Practice quiz</li><li><b>Tue</b>Midterm</li>
+        </ol>
+        <div class="heat" id="heat" aria-hidden="true"></div>
+        <p class="caption">A month of studying, a dot a day.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ bento -->
+<section class="chapter" id="everything" aria-labelledby="bento-title">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <p class="kicker">A little of everything</p>
+        <h2 class="big-h" id="bento-title">Touch any of it</h2>
+      </div>
+      <p class="line">Have a go. Each one works the way it does in the app.</p>
+    </div>
+    <div class="bento">
+      <article class="b" aria-label="A week you can rearrange">
+        <h4>Your week, by hand</h4>
+        <div class="scene"><div class="mw" id="mw"></div></div>
+      </article>
+      <article class="b" aria-label="Search">
+        <h4>Find it as you type</h4>
+        <div class="scene">
+          <label class="msearch"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/><path d="M13.5 13.5L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="sr">Search</span><input id="msearch" placeholder="try osmosis" /></label>
+          <div class="mres" id="mres"></div>
+        </div>
+      </article>
+      <article class="b" aria-label="A picture drill">
+        <h4>Drill the pictures</h4>
+        <div class="scene pdrill" id="pdrill"></div>
+      </article>
+      <article class="b" aria-label="Chat about a page">
+        <h4>Ask about a page</h4>
+        <div class="scene chat" id="chat">
+          <div class="bub me">What's on the midterm?</div>
+          <div class="bub nota"><img src="assets/buddy-curious-sm.webp" alt="" /><span>Units 1 to 4: atoms, bonding, moles and gases. <span class="cite">Outline p.5</span></span></div>
+        </div>
+      </article>
+      <article class="b" aria-label="Readiness for an exam">
+        <h4>Ready for the midterm?</h4>
+        <div class="scene ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="48" fill="none" stroke="rgba(29,23,28,0.08)" stroke-width="12"/><circle id="ring" cx="60" cy="60" r="48" fill="none" stroke="#c9532f" stroke-width="12" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)"/><text id="ring-val" x="60" y="68" text-anchor="middle" font-family="Figtree" font-weight="300" font-size="26" fill="#1d171c">0%</text></svg>
+          <div><p>You know 14 of 20 topics</p><button id="ring-know" type="button">I know one more</button></div>
+        </div>
+      </article>
+      <article class="b" aria-label="What the final needs">
+        <h4>What the final needs</h4>
+        <div class="scene goal">
+          <p><span class="big" id="g-need">78%</span></p>
+          <p id="g-line">for an 80 in the course</p>
+          <input type="range" min="60" max="95" value="80" id="g-target" aria-label="Your goal for the course" />
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ================================================================ footer -->
+<footer class="foot" id="download" aria-labelledby="dl-title">
+  <img class="end-buddy" src="assets/buddy-cheering.webp" alt="Nota's buddy, cheering you on" />
+  <h2 class="big-h" id="dl-title">Bring your semester <em>home</em></h2>
+  <p class="line">Free for Windows 10 and 11. Your files stay on your laptop.</p>
+  <div class="row">
+    <a class="pill black" href="https://github.com/aaronsu0105/nota/releases/latest/download/Nota-Setup.exe">Download for Windows</a>
+    <a class="pill ghost" href="https://github.com/aaronsu0105/nota/releases/latest/download/Nota-Setup.zip">Get the .zip</a>
+  </div>
+  <div class="foot-panel">
+    <div class="faq">
+      <details><summary>Windows says it protected my PC</summary><p>That's normal for a new app. Choose More info, then Run anyway. Or grab the .zip instead.</p></details>
+      <details><summary>Do I need an AI key?</summary><p>Only for chat. Get a free one from <a href="https://aistudio.google.com/apikey">Google AI Studio</a> or <a href="https://console.groq.com/keys">Groq</a>, and Nota asks for it the first time.</p></details>
+      <details><summary>Is there a Mac version?</summary><p>Not yet. Nota is Windows only for now.</p></details>
+    </div>
+    <nav class="foot-links" aria-label="More">
+      <a href="https://github.com/aaronsu0105/nota/releases">Every release</a>
+      <a href="#calendar">Calendar</a>
+      <a href="#search">Search</a>
+      <a href="#island">The island</a>
+      <a href="#cards">Flashcards</a>
+    </nav>
+  </div>
+  <p class="legal">Made for science students. Free, and yours.</p>
+</footer>
+
+<dialog class="explore" id="explore-dlg" aria-label="Explore the island"><iframe title="The study island, to explore"></iframe></dialog>
+<script src="site.js?v=mwmfp32g" defer></script>
+</body>
+</html>
