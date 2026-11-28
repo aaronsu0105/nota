@@ -1,0 +1,1 @@
+const s=[/^http:\/\/localhost:\d+$/,/^http:\/\/127\.0\.0\.1:\d+$/,/^tauri:\/\//,/^https?:\/\/tauri\.localhost$/];function o(t){return t?s.some(r=>r.test(t)):!1}function e(t){return o(t)?{"Access-Control-Allow-Origin":t,Vary:"Origin"}:{}}export{e as c,o as i};

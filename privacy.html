@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nota · Privacy</title>
+<meta name="description" content="What Nota keeps, where it keeps it, and what it never does with your data." />
+<link rel="icon" type="image/png" href="nota-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --ink: #231f26; --muted: #6b6470; --paper: #fbf7f3; --edge: rgba(35, 31, 38, 0.1); --warm: #e8a07c; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #f1e9e4; --muted: #b3a9b0; --paper: #1d1a21; --edge: rgba(255, 255, 255, 0.1); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 Figtree, system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 56px 22px 80px; }
+  a { color: inherit; text-decoration-color: var(--warm); text-underline-offset: 3px; }
+  h1 { font: 400 46px/1.1 'Instrument Serif', serif; margin: 0 0 6px; }
+  h2 { font: 400 28px/1.2 'Instrument Serif', serif; margin: 44px 0 8px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 24px 0 4px; }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); }
+  .box { border: 1px solid var(--edge); border-radius: 18px; padding: 16px 20px; margin: 18px 0; }
+  ul { padding-left: 20px; }
+  .back { display: inline-block; margin-bottom: 28px; font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="./">← Nota</a>
+  <h1>Privacy</h1>
+  <p class="muted">Last updated 22 November 2026. This covers Nota for Windows and Nota on the web.</p>
+
+  <div class="box">
+    <p><b>In short:</b> what you put into Nota stays on your device. There is no Nota account and no Nota server that holds your files, notes or calendar. Nothing is
+    sold, shared or used for advertising. A few things go to other services only when you turn them on, and each is listed below.</p>
+  </div>
+
+  <h2>What Nota keeps, and where</h2>
+  <p>Your documents, notes, calendar, flashcards, study history and settings are kept on your own device: in a folder on your computer for Nota for Windows, and in your
+  browser's private storage for Nota on the web. Nota's maker cannot see them. Deleting Nota (or, on the web, Settings › Your data › Delete everything) removes them.</p>
+
+  <h2>What leaves your device, and only when you ask</h2>
+  <h3>The AI tutor</h3>
+  <p>Chat answers come from an AI provider you choose (Google Gemini or Groq), using your own free key. When you ask something, only your question and the passages needed
+  to answer it are sent to that provider, straight from your device. Your key is kept only on your device and is never sent anywhere but to that provider.</p>
+
+  <h3>Google Drive (Nota on the web, optional)</h3>
+  <p>If you turn on "Keep a copy in your Google Drive", Nota keeps a copy of your library in a private app folder of your own Google Drive, so it can follow you to another
+  device. Nota can see only that folder, not your other Drive files. Your AI key and your Google Calendar events are not copied there. You can stop syncing, or remove the copy,
+  in Settings › Your data.</p>
+
+  <h3>Google Calendar (Nota on the web, optional)</h3>
+  <p>If you press "Connect Google Calendar", Nota asks Google for read-only access to the list of your calendars and the events on them. Then:</p>
+  <ul>
+    <li><b>Nota can see</b> your calendars' names and colours, and on the calendars you choose: event titles, times, places, descriptions and meeting links, from a month ago to a year ahead.</li>
+    <li><b>Nota cannot</b> add, change or delete anything in your Google Calendar, see your other calendars' events unless you choose them, or see anything else in your Google account.</li>
+    <li><b>Where it goes:</b> your events are copied only into Nota in your browser, so they appear in its calendar, plan and reminders. They travel only between Google and your browser. They are never sent to Nota's maker, to your AI provider or to anyone else, never copied into your Drive backup, and never used for advertising or to train AI models. The tutor sees your Nota calendar, but not the events that came from Google.</li>
+    <li><b>Access tokens</b> from Google are kept in your browser's memory only, never saved, and end when you close the tab.</li>
+    <li><b>Disconnecting</b> (Settings › Google Calendar › Disconnect) stops Nota reading your calendar, gives Google back its permission, and lets you remove the imported events from Nota or keep them as your own. You can also remove Nota's access at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+  </ul>
+  <p>Nota's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+  <h3>Other small things</h3>
+  <ul>
+    <li><b>Model files:</b> Nota on the web downloads its reading models once from Hugging Face's public model hub. No data of yours is sent.</li>
+    <li><b>Weather</b> on the calendar comes from Open-Meteo, which receives an approximate location only.</li>
+    <li><b>Definitions</b> of terms come from Wikipedia and Wiktionary, which receive the term looked up.</li>
+    <li><b>Usage counts (Nota for Windows only, and only if you leave them on):</b> once a day, that Nota was opened, its version, your Windows version and language, and a random number for the install. Never your name, files, questions or courses. Switch them off in the AI connection dialog. Nota on the web sends none.</li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>Nota is made for university and college students and is not directed at children under 13.</p>
+
+  <h2>Changes and contact</h2>
+  <p>If this changes, the date at the top changes too. Questions: through <a href="https://github.com/aaronsu0105/nota">Nota's page on GitHub</a>.</p>
+</main>
+</body>
+</html>
